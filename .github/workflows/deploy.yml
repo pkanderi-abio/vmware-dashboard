@@ -1,0 +1,65 @@
+﻿name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+# Only allow one deployment at a time; cancel any in-progress run if a new push arrives
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: SSH Deploy → Server
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/opt/vmware-dashboard' }}
+
+    steps:
+      # ── 1. Deploy (runner runs directly on the server) ────────────────────
+      - name: Pull latest code
+        run: |
+          cd "$DEPLOY_DIR"
+          git pull origin main
+
+      - name: Install Python dependencies
+        run: |
+          cd "$DEPLOY_DIR"
+          source venv/bin/activate
+          pip install -q -r requirements.txt
+
+      - name: Install Node dependencies
+        run: |
+          cd "$DEPLOY_DIR"
+          npm ci --silent
+
+      - name: Build frontend
+        run: |
+          cd "$DEPLOY_DIR"
+          npm run build
+
+      - name: Restart services
+        run: |
+          sudo systemctl restart vm-api vm-frontend
+          sudo systemctl is-active vm-api vm-frontend
+
+      # ── 2. Health check ───────────────────────────────────────────────────
+      - name: Verify API is responding
+        run: |
+          echo "Waiting for API to start..."
+          for i in $(seq 1 12); do
+            response=$(curl -sf http://localhost:8000/api/health 2>/dev/null || true)
+            if [ -n "$response" ]; then
+              echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print('API status:', d['status']); sys.exit(0 if d['status']=='ok' else 1)"
+              exit $?
+            fi
+            echo "Attempt $i/12: API not ready, retrying in 5s..."
+            sleep 5
+          done
+          echo "ERROR: API did not respond after 60s"
+          sudo systemctl status vm-api --no-pager
+          exit 1

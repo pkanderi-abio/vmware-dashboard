@@ -1,0 +1,1106 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VMware Dashboard – Technical Documentation</title>
+  <style>
+    /* ===================================================
+       CONFLUENCE-COMPATIBLE STYLING
+       Paste this page's <body> content into a Confluence
+       HTML macro, or use the page as an import template.
+       =================================================== */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #172B4D;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      background: #ffffff;
+    }
+    h1 { font-size: 28px; font-weight: 700; color: #0052CC; border-bottom: 3px solid #0052CC; padding-bottom: 10px; margin-top: 0; }
+    h2 { font-size: 22px; font-weight: 700; color: #0052CC; border-bottom: 2px solid #DFE1E6; padding-bottom: 6px; margin-top: 40px; }
+    h3 { font-size: 17px; font-weight: 700; color: #172B4D; margin-top: 28px; }
+    h4 { font-size: 14px; font-weight: 700; color: #172B4D; margin-top: 18px; margin-bottom: 4px; }
+    p  { margin: 8px 0 12px; }
+    a  { color: #0052CC; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Info / note panels */
+    .panel {
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-left: 4px solid;
+    }
+    .panel-info    { background: #E6F2FF; border-color: #0052CC; }
+    .panel-note    { background: #FFFAE6; border-color: #FF991F; }
+    .panel-success { background: #E3FCEF; border-color: #00875A; }
+    .panel-warning { background: #FFFAE6; border-color: #FF8B00; }
+    .panel-title   { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .panel-info .panel-title    { color: #0052CC; }
+    .panel-note .panel-title    { color: #974F0C; }
+    .panel-success .panel-title { color: #006644; }
+    .panel-warning .panel-title { color: #974F0C; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    th { background: #F4F5F7; color: #172B4D; font-weight: 700; padding: 8px 12px; text-align: left; border: 1px solid #DFE1E6; }
+    td { padding: 8px 12px; border: 1px solid #DFE1E6; vertical-align: top; }
+    tr:nth-child(even) td { background: #FAFBFC; }
+
+    /* Code */
+    code {
+      background: #F4F5F7;
+      color: #172B4D;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12.5px;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    pre {
+      background: #1B2333;
+      color: #CDD6F4;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12.5px;
+      padding: 16px 20px;
+      border-radius: 5px;
+      overflow-x: auto;
+      margin: 16px 0;
+      line-height: 1.5;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+
+    /* Badge-style labels */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .badge-blue   { background: #DEEBFF; color: #0052CC; }
+    .badge-green  { background: #E3FCEF; color: #006644; }
+    .badge-orange { background: #FFFAE6; color: #974F0C; }
+    .badge-red    { background: #FFEBE6; color: #BF2600; }
+    .badge-gray   { background: #F4F5F7; color: #5E6C84; }
+
+    /* Method badges */
+    .method { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; width: 46px; text-align: center; }
+    .get    { background: #E3FCEF; color: #006644; }
+    .post   { background: #DEEBFF; color: #0052CC; }
+    .put    { background: #EAE6FF; color: #403294; }
+    .delete { background: #FFEBE6; color: #BF2600; }
+
+    /* TOC */
+    .toc { background: #F4F5F7; border: 1px solid #DFE1E6; border-radius: 4px; padding: 16px 20px; margin: 20px 0; }
+    .toc h3 { margin-top: 0; font-size: 15px; }
+    .toc ol { margin: 0; padding-left: 20px; }
+    .toc li { margin: 4px 0; }
+
+    /* Architecture block */
+    .arch-block {
+      background: #F4F5F7;
+      border: 1px solid #DFE1E6;
+      border-radius: 4px;
+      padding: 20px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.8;
+      white-space: pre;
+    }
+
+    /* Section divider */
+    hr { border: none; border-top: 1px solid #DFE1E6; margin: 32px 0; }
+
+    /* Subtitle row */
+    .subtitle {
+      color: #5E6C84;
+      font-size: 15px;
+      margin-top: -6px;
+      margin-bottom: 20px;
+    }
+    .meta-row { display: flex; gap: 24px; flex-wrap: wrap; margin: 16px 0 24px; }
+    .meta-item { font-size: 13px; color: #5E6C84; }
+    .meta-item strong { color: #172B4D; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     COVER
+     ============================================================ -->
+<h1>VMware Dashboard – Technical Documentation</h1>
+<p class="subtitle">Infrastructure Monitoring Dashboard for VMware vCenter Environments</p>
+
+<div class="meta-row">
+  <div class="meta-item"><strong>Version:</strong> 2.6</div>
+  <div class="meta-item"><strong>Last Updated:</strong> April 2026</div>
+  <div class="meta-item"><strong>Owner:</strong> Cloud Infrastructure Engineering (CIE)</div>
+  <div class="meta-item"><strong>Status:</strong> <span class="badge badge-green">Production</span></div>
+</div>
+
+<div class="panel panel-info">
+  <div class="panel-title">Overview</div>
+  The VMware Dashboard is an internal web application that provides real-time visibility into VMware vCenter environments.
+  It aggregates data from multiple vCenter instances, enriches it with PuppetDB configuration management data, and
+  maintains a historical CMDB of VM inventory. Engineers use it to monitor ESXi hosts, virtual machines, datastores,
+  networks, and snapshots from a single unified interface.
+</div>
+
+<!-- ============================================================
+     TABLE OF CONTENTS
+     ============================================================ -->
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#architecture">Architecture Overview</a></li>
+    <li><a href="#tech-stack">Technology Stack</a></li>
+    <li><a href="#infrastructure">Infrastructure &amp; Deployment</a></li>
+    <li><a href="#backend">Backend – Python / FastAPI</a>
+      <ol>
+        <li><a href="#modules">Module Descriptions</a></li>
+        <li><a href="#cache">Cache &amp; Data Refresh</a></li>
+        <li><a href="#credentials">Credential Management</a></li>
+      </ol>
+    </li>
+    <li><a href="#api">REST API Reference</a></li>
+    <li><a href="#frontend">Frontend – React / TypeScript</a>
+      <ol>
+        <li><a href="#pages">Pages &amp; Features</a></li>
+        <li><a href="#components">Shared Components</a></li>
+        <li><a href="#routing">Routing</a></li>
+      </ol>
+    </li>
+    <li><a href="#data-flow">Data Flow</a></li>
+    <li><a href="#integrations">External Integrations</a></li>
+    <li><a href="#configuration">Configuration Reference</a></li>
+    <li><a href="#operations">Operations &amp; Service Management</a></li>
+    <li><a href="#security">Security Considerations</a></li>
+    <li><a href="#troubleshooting">Troubleshooting Guide</a></li>
+    <li><a href="#file-structure">Project File Structure</a></li>
+  </ol>
+</div>
+
+<hr />
+
+<!-- ============================================================
+     1. ARCHITECTURE OVERVIEW
+     ============================================================ -->
+<h2 id="architecture">1. Architecture Overview</h2>
+
+<p>
+  The VMware Dashboard follows a two-tier web application pattern: a Python FastAPI backend that collects and serves
+  data, and a React single-page application that consumes the API. Both run on the same physical server as separate
+  systemd services.
+</p>
+
+<div class="arch-block">
+┌─────────────────────────────────────────────────────────────────────┐
+│                          USER BROWSER                               │
+│            http://&lt;server&gt;:5173   (React SPA)                      │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │  HTTP (same origin, proxy)
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│               VITE PREVIEW SERVER  (port 5173)                      │
+│   vm-frontend.service   →  npx vite preview --host 0.0.0.0        │
+│   Proxy: /api/*  →  http://localhost:8000                           │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │  HTTP /api/*
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│               FASTAPI BACKEND  (port 8000)                          │
+│   vm-api.service   →  uvicorn main:app                             │
+│   venv: /opt/vmware-dashboard/venv                           │
+│                                                                     │
+│   ┌────────────┐  ┌─────────────┐  ┌────────────┐  ┌───────────┐  │
+│   │ vcenter_   │  │ cmdb_       │  │ vcenter_   │  │ puppet_   │  │
+│   │ fast.py    │  │ history.py  │  │ health.py  │  │ client.py │  │
+│   └─────┬──────┘  └──────┬──────┘  └─────┬──────┘  └─────┬─────┘  │
+└─────────┼─────────────────┼──────────────┼────────────────┼────────┘
+          │                 │              │                │
+    ┌─────▼──────┐   ┌──────▼──────┐  ┌───▼────────┐  ┌───▼────────┐
+    │  vCenter   │   │  CMDB JSON  │  │ vCenter    │  │ PuppetDB   │
+    │ API (8x)   │   │  on disk    │  │ Health     │  │ REST API   │
+    │ pyVmomi    │   │ cache.json  │  │ cache      │  │ port 8081  │
+    └────────────┘   └─────────────┘  └────────────┘  └────────────┘
+</div>
+
+<h3>Key Design Decisions</h3>
+<table>
+  <thead><tr><th>Decision</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>In-process persistent cache (JSON on disk)</td>
+      <td>vCenter API calls are slow (10–30 s). A 30-minute in-memory cache with disk persistence means fast page loads and resilience across service restarts.</td>
+    </tr>
+    <tr>
+      <td>Background refresh thread</td>
+      <td>Data collection runs in a daemon thread so API requests always return immediately from cache.</td>
+    </tr>
+    <tr>
+      <td>Historical CMDB in JSON</td>
+      <td>VM inventory is persisted locally to track decommissioned machines over time without requiring a database.</td>
+    </tr>
+    <tr>
+      <td>pyVmomi + PropertyCollector</td>
+      <td>Uses VMware's native Python SDK with batch PropertyCollector calls for high-performance data retrieval across large environments.</td>
+    </tr>
+    <tr>
+      <td>Vite proxy for API calls</td>
+      <td>Frontend calls <code>/api/*</code> on the same origin; Vite proxies to the backend. No CORS header manipulation needed in production.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     2. TECHNOLOGY STACK
+     ============================================================ -->
+<h2 id="tech-stack">2. Technology Stack</h2>
+
+<h3>Backend</h3>
+<table>
+  <thead><tr><th>Component</th><th>Technology</th><th>Version</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>Language</td><td>Python</td><td>3.9+</td><td>Backend runtime</td></tr>
+    <tr><td>Web framework</td><td>FastAPI</td><td>0.109.0</td><td>REST API server</td></tr>
+    <tr><td>ASGI server</td><td>Uvicorn</td><td>0.27.0</td><td>Production ASGI server</td></tr>
+    <tr><td>Data validation</td><td>Pydantic</td><td>2.5.3</td><td>Request / response models</td></tr>
+    <tr><td>VMware SDK</td><td>pyVmomi</td><td>latest</td><td>vCenter API via pyVim / pyVmomi</td></tr>
+    <tr><td>HTTP client</td><td>requests / urllib3</td><td>2.31.0 / 2.1.0</td><td>PuppetDB REST calls, health checks</td></tr>
+    <tr><td>Environment</td><td>python-dotenv</td><td>1.0.0</td><td>Optional env config loading</td></tr>
+  </tbody>
+</table>
+
+<h3>Frontend</h3>
+<table>
+  <thead><tr><th>Component</th><th>Technology</th><th>Version</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>Language</td><td>TypeScript</td><td>5.x</td><td>Type-safe frontend code</td></tr>
+    <tr><td>UI library</td><td>React</td><td>18</td><td>Component-based SPA</td></tr>
+    <tr><td>Build tool</td><td>Vite</td><td>4.5.14</td><td>Fast build + dev server + proxy</td></tr>
+    <tr><td>Routing</td><td>React Router DOM</td><td>6.x</td><td>Client-side routing</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS</td><td>3.x</td><td>Utility-first CSS framework</td></tr>
+    <tr><td>Icons</td><td>Lucide React</td><td>latest</td><td>Icon library</td></tr>
+    <tr><td>CSS post-processing</td><td>PostCSS + Autoprefixer</td><td>—</td><td>Cross-browser CSS</td></tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     3. INFRASTRUCTURE & DEPLOYMENT
+     ============================================================ -->
+<h2 id="infrastructure">3. Infrastructure &amp; Deployment</h2>
+
+<h3>Server Details</h3>
+<table>
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Server IP</td><td><code>&lt;your-server-ip&gt;</code></td></tr>
+    <tr><td>Operating System</td><td>Linux (Ubuntu/RHEL)</td></tr>
+    <tr><td>Application root</td><td><code>/opt/vmware-dashboard</code></td></tr>
+    <tr><td>Python virtual env</td><td><code>/opt/vmware-dashboard/venv</code></td></tr>
+    <tr><td>Cache directory</td><td><code>~/.vmware-dashboard-cache/</code></td></tr>
+    <tr><td>Backend port</td><td>8000</td></tr>
+    <tr><td>Frontend port</td><td>5173</td></tr>
+  </tbody>
+</table>
+
+<h3>Systemd Services</h3>
+<table>
+  <thead><tr><th>Service</th><th>Description</th><th>Command</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>vm-api.service</code></td>
+      <td>FastAPI backend</td>
+      <td><code>uvicorn main:app --host 0.0.0.0 --port 8000</code></td>
+    </tr>
+    <tr>
+      <td><code>vm-frontend.service</code></td>
+      <td>Vite preview server (serves built React app)</td>
+      <td><code>npx vite preview --host 0.0.0.0 --port 5173</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Service Management</h3>
+<pre><code># Check service status
+sudo systemctl status vm-api
+sudo systemctl status vm-frontend
+
+# Restart services
+sudo systemctl restart vm-api
+sudo systemctl restart vm-frontend
+
+# View live logs
+sudo journalctl -u vm-api -f
+sudo journalctl -u vm-frontend -f</code></pre>
+
+<h3>Frontend Build &amp; Deploy</h3>
+<pre><code># From /opt/vmware-dashboard
+cd /opt/vmware-dashboard
+
+# Install dependencies (first time or after package.json changes)
+npm install
+
+# Build production bundle
+npm run build
+
+# Restart frontend to serve the new build
+sudo systemctl restart vm-frontend</code></pre>
+
+<h3>vCenter Connections</h3>
+<p>The following 8 vCenter instances are connected:</p>
+<table>
+  <thead><tr><th>vCenter Hostname</th><th>Location</th></tr></thead>
+  <tbody>
+    <tr><td>ltx1-b1-vcsa-02</td><td>LTX1 Pod B1</td></tr>
+    <tr><td>ltx1-a1-vcsa-01</td><td>LTX1 Pod A1</td></tr>
+    <tr><td>ltx1-b1-vcsa-01</td><td>LTX1 Pod B1</td></tr>
+    <tr><td>lva1-b1-vcsa-01</td><td>LVA1 Pod B1</td></tr>
+    <tr><td>lva1-a1-vcsa-01</td><td>LVA1 Pod A1</td></tr>
+    <tr><td>squc-vcsa-01</td><td>SQUC</td></tr>
+    <tr><td>eam1-vcsa-01</td><td>EAM1</td></tr>
+    <tr><td>esg3-vcsa-01</td><td>ESG3</td></tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     4. BACKEND
+     ============================================================ -->
+<h2 id="backend">4. Backend – Python / FastAPI</h2>
+
+<h3 id="modules">4.1 Module Descriptions</h3>
+
+<h4>main.py – Application entry point and API router</h4>
+<p>The core of the backend. Version 2.6. Responsibilities:</p>
+<ul>
+  <li>FastAPI application setup with CORS middleware</li>
+  <li>pyVmomi session management (<code>VCenterPyVmomi</code> class with auto-reconnect)</li>
+  <li>In-memory + on-disk <code>PersistentCache</code> class (30-minute TTL)</li>
+  <li>Background data refresh thread (parallel collection from all vCenters)</li>
+  <li>Credential loading/saving to <code>vcenter_credentials.json</code></li>
+  <li>All REST API endpoint definitions</li>
+  <li>Startup: connects to all saved vCenters, seeds health checker, starts refresh</li>
+  <li>Shutdown: graceful disconnect from all pyVmomi sessions</li>
+</ul>
+
+<h4>vcenter_fast.py – Parallel vCenter data collector</h4>
+<p>Provides <code>collect_vcenter_data_parallel()</code> which uses Python's <code>ThreadPoolExecutor</code> to concurrently
+collect data from all configured vCenters. Uses pyVmomi's <code>PropertyCollector</code> for efficient batch retrieval
+of VM, host, datastore, and network properties. This avoids the N+1 query problem common with traversal-based collection.</p>
+
+<h4>cmdb_history.py – Historical VM inventory (CMDB)</h4>
+<p>Implements the <code>HistoricalCMDB</code> class. Key capabilities:</p>
+<ul>
+  <li>Persists complete VM inventory to <code>~/.vmware-dashboard-cache/cmdb_history.json</code></li>
+  <li>Tracks VM lifecycle: first_seen, last_seen, status (active / decommissioned / unreachable)</li>
+  <li>Detects decommissioned VMs when they disappear from a connected vCenter</li>
+  <li>Supports concurrent ping-based reachability verification of unreachable VMs</li>
+  <li>Singleton <code>historical_cmdb</code> instance loaded at module import</li>
+  <li>Current scale: ~1,943 total records (1,795 active, ~148 decommissioned)</li>
+</ul>
+
+<h4>vcenter_health.py – vCenter health monitoring</h4>
+<p>Implements <code>VCenterHealthChecker</code>. Performs three independent checks per vCenter:</p>
+<ul>
+  <li><strong>Ping:</strong> ICMP reachability + latency via <code>subprocess.run(['ping', ...])</code></li>
+  <li><strong>HTTPS:</strong> Web UI availability check via <code>https://&lt;vcenter&gt;/ui/</code></li>
+  <li><strong>SDK:</strong> pyVmomi SmartConnect test (validates credentials and API)</li>
+</ul>
+<p>Results are persisted to <code>~/.vmware-dashboard-cache/vcenter_health.json</code>. Uses <code>ThreadPoolExecutor</code> for concurrent multi-vCenter checks. Auto-refreshes every 300 seconds via the health loop in <code>main.py</code>.</p>
+
+<h4>puppet_client.py – PuppetDB integration</h4>
+<p>Implements <code>PuppetClient</code>, a REST API client for PuppetDB v4. Enriches CMDB records with:</p>
+<ul>
+  <li>OS details (name, family, release, kernel version)</li>
+  <li>Network facts (IP, netmask, MAC address)</li>
+  <li>Puppet role, environment, FQDN</li>
+  <li>Agent version, last report status, uptime</li>
+  <li>Memory facts</li>
+</ul>
+<p>Endpoint: <code>https://your-puppetdb-host:8081/pdb/query/v4</code><br/>
+SSL verification is disabled (internal PKI). Deactivated/expired nodes are treated as not found.</p>
+
+<h4>global_search.py – Cross-resource search engine</h4>
+<p>Implements <code>GlobalSearch</code> — a lightweight, in-memory search across all resource types. Instantiated
+per-request with the current cache snapshot. Searches across:</p>
+<ul>
+  <li><strong>VMs</strong> – from CMDB (vmName, ipAddress, hostName, cluster, guestOS, uuid)</li>
+  <li><strong>Hosts</strong> – from live cache (hostName, clusterName, vcenterName, cpuModel)</li>
+  <li><strong>Datastores</strong> – from live cache (datastoreName, vcenterName, type)</li>
+  <li><strong>Networks</strong> – from live cache (networkName, vcenterName, type)</li>
+</ul>
+
+<h3 id="cache">4.2 Cache &amp; Data Refresh</h3>
+
+<h4>PersistentCache</h4>
+<table>
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>TTL</td><td>1,800 seconds (30 minutes)</td></tr>
+    <tr><td>Cache file</td><td><code>~/.vmware-dashboard-cache/cache.json</code></td></tr>
+    <tr><td>Thread safety</td><td><code>threading.RLock</code> on all read/write operations</td></tr>
+    <tr><td>Persistence</td><td>Atomic write via temp file + <code>os.replace()</code></td></tr>
+    <tr><td>Keys stored</td><td><code>vcenters</code>, <code>vms</code>, <code>hosts</code>, <code>datastores</code>, <code>networks</code>, <code>snapshots</code></td></tr>
+  </tbody>
+</table>
+
+<h4>Background Refresh Flow</h4>
+<ol>
+  <li>Triggered at startup and after any vCenter connect/disconnect event</li>
+  <li>Loads all enabled credentials from <code>vcenter_credentials.json</code></li>
+  <li>Calls <code>collect_vcenter_data_parallel()</code> with up to 4 worker threads</li>
+  <li>Assigns sequential IDs to all returned objects</li>
+  <li>Writes results to cache: vcenters, vms, hosts, datastores, networks</li>
+  <li>Collects snapshots via pyVmomi sessions</li>
+  <li>Triggers CMDB sync from refreshed VM list</li>
+  <li>Refresh lock prevents concurrent refresh runs</li>
+</ol>
+
+<h3 id="credentials">4.3 Credential Management</h3>
+<p>vCenter credentials are stored in <code>~/.vmware-dashboard-cache/vcenter_credentials.json</code>. Each entry includes:</p>
+<pre><code>{
+  "hostname": "vcenter.example.com",
+  "id": "vc-12345678",
+  "username": "service-account@domain",
+  "password": "&lt;encrypted at rest by OS file permissions&gt;",
+  "port": 443,
+  "enabled": true,
+  "lastConnected": "2026-04-25T10:30:00.000Z"
+}</code></pre>
+
+<div class="panel panel-warning">
+  <div class="panel-title">Security Note</div>
+  Credentials are stored in plaintext JSON on disk, protected by Linux file system permissions.
+  The file should be owned by the service account with <code>chmod 600</code>. Consider migrating
+  to a secrets manager (e.g., HashiCorp Vault) for production hardening.
+</div>
+
+<hr />
+
+<!-- ============================================================
+     5. API REFERENCE
+     ============================================================ -->
+<h2 id="api">5. REST API Reference</h2>
+
+<p>Base URL: <code>http://&lt;server&gt;:8000</code> (or via proxy: <code>http://&lt;server&gt;:5173/api/</code>)</p>
+<p>All endpoints return JSON. Standard response envelope:</p>
+<pre><code>{ "success": true, "data": &lt;payload&gt;, "count": &lt;n&gt; }
+{ "success": false, "message": "&lt;error description&gt;" }</code></pre>
+
+<h3>Health &amp; Cache</h3>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/health</code></td><td>Backend health: vCenter connection count, cache age, refresh status</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cache/status</code></td><td>Per-key cache age, expiry status, and payload size</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/cache/refresh</code></td><td>Trigger a background data refresh immediately</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/cache/clear</code></td><td>Clear all cached data (forces re-fetch on next request)</td></tr>
+  </tbody>
+</table>
+
+<h3>vCenter Connections</h3>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/vcenters</code></td><td>List all known vCenters with VM/host counts</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/vcenters/connections</code></td><td>List all saved connections with status (connected/disconnected)</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenters/connections</code></td><td>Save/update all vCenter connections in bulk</td></tr>
+    <tr><td><span class="method delete">DELETE</span></td><td><code>/api/vcenters/connections/{hostname}</code></td><td>Remove a vCenter connection and credentials</td></tr>
+    <tr><td><span class="method put">PUT</span></td><td><code>/api/vcenters/connections/{hostname}/toggle</code></td><td>Enable/disable a connection</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenters/connections/{hostname}/reconnect</code></td><td>Force-reconnect a specific vCenter</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenter/connect</code></td><td>Add a new vCenter connection (immediate connect)</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenter/disconnect/{hostname}</code></td><td>Disconnect and remove a vCenter</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenters/test</code></td><td>Test credentials without saving (returns success/fail)</td></tr>
+  </tbody>
+</table>
+
+<h3>Infrastructure Resources</h3>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/vms</code></td><td>All virtual machines from cache</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/vm/{vm_id}</code></td><td>Single VM by ID or name</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/hosts</code></td><td>All ESXi hosts from cache</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/host/{host_id}</code></td><td>Single host by ID or name</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/datastores</code></td><td>All datastores from cache</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/datastore/{ds_id}</code></td><td>Single datastore by ID or name</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/networks</code></td><td>All networks / port groups from cache</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/network/{net_id}</code></td><td>Single network by ID or name</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/snapshots</code></td><td>All VM snapshots from cache</td></tr>
+  </tbody>
+</table>
+
+<h3>CMDB</h3>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/vms</code></td><td>All CMDB records (optionally include decommissioned)</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/active</code></td><td>Active VMs only (status ≠ decommissioned)</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/decommissioned</code></td><td>Decommissioned VM records</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/stats</code></td><td>CMDB summary statistics</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/search?q={term}</code></td><td>Search CMDB by name, IP, OS, vCenter, host, cluster</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/export</code></td><td>Full CMDB export as JSON</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/vm/{identifier}</code></td><td>Single VM history record by name or key</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/cmdb/vm-history/{vm_key}</code></td><td>VM history by internal key</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/cmdb/sync</code></td><td>Force CMDB sync from current cache</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/cmdb/enrich/puppet</code></td><td>Background: enrich all active VMs with PuppetDB data</td></tr>
+  </tbody>
+</table>
+
+<h3>vCenter Health</h3>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/vcenter-health</code></td><td>Health summary for all known vCenters</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenter-health/check</code></td><td>Trigger full health check for all vCenters (background)</td></tr>
+    <tr><td><span class="method post">POST</span></td><td><code>/api/vcenter-health/check/{hostname}</code></td><td>Trigger health check for a single vCenter (synchronous)</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/health-check/status</code></td><td>Health check scheduler status (interval, last run)</td></tr>
+  </tbody>
+</table>
+
+<h3>Puppet &amp; Global Search</h3>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/puppet/{hostname}</code></td><td>Puppet facts and report data for a specific hostname</td></tr>
+    <tr><td><span class="method get">GET</span></td><td><code>/api/search?q={term}&amp;limit={n}</code></td><td>Global search across VMs, hosts, datastores, and networks. Minimum 2 characters. Default limit: 20.</td></tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     6. FRONTEND
+     ============================================================ -->
+<h2 id="frontend">6. Frontend – React / TypeScript</h2>
+
+<h3 id="pages">6.1 Pages &amp; Features</h3>
+
+<h4>Dashboard (Home) — <code>/</code></h4>
+<ul>
+  <li>High-level summary cards: total VMs, hosts, datastores, networks</li>
+  <li>vCenter connection overview with status indicators</li>
+  <li>Quick-access links to all sections</li>
+  <li>Cache age and refresh status</li>
+</ul>
+
+<h4>Virtual Machines — <code>/vms</code></h4>
+<ul>
+  <li>Paginated table of all VMs across all connected vCenters</li>
+  <li>Columns: name, power state, OS, IP address, host, cluster, vCenter, CPU/memory</li>
+  <li>Column filtering and search</li>
+  <li>Click row → VM detail page</li>
+</ul>
+
+<h4>VM Detail — <code>/vm/:vmName</code></h4>
+<ul>
+  <li>Full detail view for a single VM</li>
+  <li>Puppet enrichment data (if available): OS, role, kernel, environment, last report</li>
+  <li>Snapshot inventory for the VM</li>
+  <li>Hardware configuration, network adapters, custom attributes</li>
+</ul>
+
+<h4>ESXi Hosts — <code>/hosts</code></h4>
+<ul>
+  <li>All ESXi hosts with CPU model, CPU usage, memory usage, VM count</li>
+  <li>Status badges: Connected / Maintenance / Disconnected</li>
+  <li>Cluster and vCenter grouping</li>
+</ul>
+
+<h4>Datastores — <code>/datastores</code></h4>
+<ul>
+  <li>All datastores with type, total/used/free capacity, usage percentage</li>
+  <li>Progress bar colour-coded by usage: green (&lt;70%), orange (70–90%), red (&gt;90%)</li>
+  <li><strong>Expandable rows:</strong> click any row to reveal a detail panel with:
+    <ul>
+      <li>Identification: datastore ID, full name, type, vCenter</li>
+      <li>Capacity: total/used/free GB with visual progress bar</li>
+      <li>Status: accessibility and health badges</li>
+      <li>Connected resources: host count and VM count</li>
+    </ul>
+  </li>
+</ul>
+
+<h4>Networks — <code>/networks</code></h4>
+<ul>
+  <li>Port groups and distributed virtual switches</li>
+  <li>Network name, type, vCenter, connected VM count</li>
+</ul>
+
+<h4>Snapshots — <code>/snapshots</code></h4>
+<ul>
+  <li>All VM snapshots across all vCenters</li>
+  <li>Snapshot name, parent VM, creation date, description</li>
+  <li>Age-based highlighting for old snapshots</li>
+</ul>
+
+<h4>CMDB — <code>/cmdb</code></h4>
+<ul>
+  <li>Full historical VM inventory with lifecycle tracking</li>
+  <li>Filter by status: all / active / decommissioned</li>
+  <li>Search by name, IP, OS, cluster, host, vCenter</li>
+  <li>Export button for full CMDB data</li>
+  <li>Puppet enrichment trigger (background task)</li>
+  <li>CMDB statistics: total, active, decommissioned, by vCenter</li>
+</ul>
+
+<h4>vCenter Health — <code>/vcenter-health</code></h4>
+<ul>
+  <li>Real-time health dashboard auto-refreshing every 30 seconds</li>
+  <li>Summary counters: healthy, degraded, unreachable, auth-failed</li>
+  <li>Per-vCenter cards showing: ping status + latency, HTTPS response, SDK connectivity, session status</li>
+  <li>Individual "Check Now" button per vCenter</li>
+  <li>"Check All" bulk health scan trigger</li>
+  <li>Status values: <code>healthy</code> | <code>service_ok</code> | <code>degraded</code> | <code>auth_failed</code> | <code>unreachable</code></li>
+</ul>
+
+<h4>Settings — <code>/settings</code></h4>
+<ul>
+  <li>vCenter connection management (add / edit / remove / test)</li>
+  <li>Enable/disable individual vCenter connections</li>
+  <li>Manual cache refresh and cache clear controls</li>
+  <li>Cache age display per resource type</li>
+</ul>
+
+<h3 id="components">6.2 Shared Components</h3>
+<table>
+  <thead><tr><th>Component</th><th>Location</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>Layout</code></td><td><code>pages/_layout.tsx</code></td><td>App shell: collapsible sidebar, mobile menu, global search dialog, keyboard shortcut (Ctrl+K / Cmd+K)</td></tr>
+    <tr><td><code>Dialog</code></td><td><code>components/ui/dialog.tsx</code></td><td>Custom modal dialog. Backdrop at z-51, content at z-52. Prevents backdrop click-interception on re-renders.</td></tr>
+    <tr><td><code>Card</code></td><td><code>components/ui/card.tsx</code></td><td>Content card with header, title, description, content, footer slots</td></tr>
+    <tr><td><code>Badge</code></td><td><code>components/ui/badge.tsx</code></td><td>Coloured label pill for status indicators</td></tr>
+    <tr><td><code>Button</code></td><td><code>components/ui/button.tsx</code></td><td>Button with variants: default, outline, destructive, ghost</td></tr>
+    <tr><td><code>Input</code></td><td><code>components/ui/input.tsx</code></td><td>Text input with consistent Tailwind styling</td></tr>
+    <tr><td><code>Progress</code></td><td><code>components/ui/progress.tsx</code></td><td>Horizontal progress bar (usage %, health indicators)</td></tr>
+    <tr><td><code>Table</code></td><td><code>components/ui/table.tsx</code></td><td>Styled table with thead/tbody/tr/th/td primitives</td></tr>
+    <tr><td><code>Tabs</code></td><td><code>components/ui/tabs.tsx</code></td><td>Tabbed navigation component</td></tr>
+    <tr><td><code>Select</code></td><td><code>components/ui/select.tsx</code></td><td>Dropdown select input</td></tr>
+    <tr><td><code>Checkbox</code></td><td><code>components/ui/checkbox.tsx</code></td><td>Accessible checkbox input</td></tr>
+    <tr><td><code>Skeleton</code></td><td><code>components/ui/skeleton.tsx</code></td><td>Loading placeholder animation</td></tr>
+    <tr><td><code>CommandSearch</code></td><td><code>components/ui/command-search.tsx</code></td><td>Command palette search input</td></tr>
+    <tr><td><code>DetailDialog</code></td><td><code>components/ui/detail-dialog.tsx</code></td><td>Pre-configured dialog for resource detail views</td></tr>
+    <tr><td><code>Collapsible</code></td><td><code>components/ui/collapsible.tsx</code></td><td>Expandable/collapsible content container</td></tr>
+  </tbody>
+</table>
+
+<h3>Global Search</h3>
+<p>The search dialog is accessible from any page:</p>
+<ul>
+  <li>Keyboard shortcut: <kbd>Ctrl+K</kbd> / <kbd>Cmd+K</kbd></li>
+  <li>Minimum 2 characters to trigger a search</li>
+  <li>300ms debounce before API call</li>
+  <li>Results grouped by type: VMs, Hosts, Datastores, Networks</li>
+  <li>Clicking a result navigates to the relevant page</li>
+  <li>Results rendered inside a <code>SearchResultsErrorBoundary</code> — search errors cannot crash the main UI</li>
+</ul>
+
+<h3 id="routing">6.3 Routing</h3>
+<table>
+  <thead><tr><th>Path</th><th>Component</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>/</code></td><td><code>HomePage</code></td><td>Dashboard home</td></tr>
+    <tr><td><code>/vms</code></td><td><code>VMsPage</code></td><td>VM listing</td></tr>
+    <tr><td><code>/vm/:vmName</code></td><td><code>VMDetailPage</code></td><td>VM detail</td></tr>
+    <tr><td><code>/hosts</code></td><td><code>HostsPage</code></td><td>Host listing</td></tr>
+    <tr><td><code>/datastores</code></td><td><code>DatastoresPage</code></td><td>Datastore listing with expand</td></tr>
+    <tr><td><code>/networks</code></td><td><code>NetworksPage</code></td><td>Network listing</td></tr>
+    <tr><td><code>/snapshots</code></td><td><code>SnapshotsPage</code></td><td>Snapshot listing</td></tr>
+    <tr><td><code>/cmdb</code></td><td><code>CMDBPage</code></td><td>Historical CMDB</td></tr>
+    <tr><td><code>/vcenter-health</code></td><td><code>VCenterHealthPage</code></td><td>vCenter health dashboard</td></tr>
+    <tr><td><code>/settings</code></td><td><code>SettingsPage</code></td><td>Configuration / connections</td></tr>
+    <tr><td><code>*</code></td><td><code>NotFoundPage</code></td><td>404 fallback</td></tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     7. DATA FLOW
+     ============================================================ -->
+<h2 id="data-flow">7. Data Flow</h2>
+
+<h3>Initial Load (Backend Startup)</h3>
+<ol>
+  <li><code>vm-api.service</code> starts → <code>main.py</code> startup handler executes</li>
+  <li>Load all credentials from <code>vcenter_credentials.json</code></li>
+  <li>Connect pyVmomi sessions for each enabled vCenter</li>
+  <li>Start <code>background_refresh()</code> in a daemon thread</li>
+  <li>Seed <code>VCenterHealthChecker</code> with known hostnames</li>
+  <li>Start async health loop (runs every 300 s)</li>
+</ol>
+
+<h3>Background Refresh (every 30 min or on-demand)</h3>
+<ol>
+  <li><code>collect_vcenter_data_parallel()</code> calls each vCenter using <code>FastVCenterCollector</code></li>
+  <li>PropertyCollector retrieves VMs, hosts, datastores, networks in batch</li>
+  <li>Results merged from all vCenters, sequential IDs assigned</li>
+  <li>Written to <code>PersistentCache</code> → persisted to <code>cache.json</code></li>
+  <li>Snapshots collected via pyVmomi per-session</li>
+  <li><code>historical_cmdb.update_from_refresh()</code> called to sync CMDB</li>
+</ol>
+
+<h3>Page Request (Browser → API)</h3>
+<ol>
+  <li>Browser requests <code>/datastores</code></li>
+  <li>React Router renders <code>DatastoresPage</code></li>
+  <li>Component calls <code>fetch("/api/datastores")</code> (proxied by Vite to <code>:8000</code>)</li>
+  <li>FastAPI reads from <code>PersistentCache</code> (in-memory, &lt;1ms)</li>
+  <li>Returns JSON response: <code>{"success": true, "data": [...], "count": N}</code></li>
+  <li>Component renders table with data</li>
+</ol>
+
+<h3>CMDB Lifecycle</h3>
+<ol>
+  <li>Every refresh, <code>update_from_refresh(vms, connected_vcenters)</code> is called</li>
+  <li>New VMs are added with <code>status: "active"</code> and <code>first_seen</code> timestamp</li>
+  <li>Existing active VMs update their <code>last_seen</code> and attributes</li>
+  <li>VMs missing from a <em>connected</em> vCenter are marked <code>status: "decommissioned"</code></li>
+  <li>VMs from disconnected vCenters retain their previous status</li>
+  <li>CMDB is persisted atomically to <code>cmdb_history.json</code></li>
+</ol>
+
+<hr />
+
+<!-- ============================================================
+     8. INTEGRATIONS
+     ============================================================ -->
+<h2 id="integrations">8. External Integrations</h2>
+
+<h3>VMware vCenter (pyVmomi)</h3>
+<table>
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Protocol</td><td>HTTPS on port 443 (SDK endpoint)</td></tr>
+    <tr><td>Authentication</td><td>Username / password (stored in credentials file)</td></tr>
+    <tr><td>SSL</td><td>Unverified context (<code>ssl._create_unverified_context()</code>) — internal CA</td></tr>
+    <tr><td>Connection pooling</td><td>One persistent <code>SmartConnect</code> session per vCenter</td></tr>
+    <tr><td>Auto-reconnect</td><td><code>VCenterPyVmomi.ensure_connected()</code> retries on session loss</td></tr>
+    <tr><td>Collection method</td><td>pyVmomi <code>PropertyCollector</code> for batch efficiency</td></tr>
+    <tr><td>Custom attributes</td><td>Fetched via <code>customFieldsManager</code> — mapped to VM/host records</td></tr>
+  </tbody>
+</table>
+
+<h3>PuppetDB</h3>
+<table>
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Endpoint</td><td><code>https://your-puppetdb-host:8081/pdb/query/v4</code></td></tr>
+    <tr><td>API version</td><td>v4</td></tr>
+    <tr><td>Authentication</td><td>None (internal network trust)</td></tr>
+    <tr><td>SSL</td><td>Unverified (internal PKI)</td></tr>
+    <tr><td>Usage</td><td>Enriches CMDB VM records with OS facts, role, Puppet agent version, last run status</td></tr>
+    <tr><td>Trigger</td><td>Manual via <code>POST /api/cmdb/enrich/puppet</code> or per-VM via <code>GET /api/puppet/{hostname}</code></td></tr>
+    <tr><td>Concurrency</td><td>20 worker threads for bulk enrichment</td></tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     9. CONFIGURATION
+     ============================================================ -->
+<h2 id="configuration">9. Configuration Reference</h2>
+
+<h3>Backend Environment Variables</h3>
+<table>
+  <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>VM_LOG_LEVEL</code></td><td><code>INFO</code></td><td>Python logging level (DEBUG, INFO, WARNING, ERROR)</td></tr>
+    <tr><td><code>VM_ALLOWED_ORIGINS</code></td><td><code>http://localhost:5173,http://127.0.0.1:5173</code></td><td>Comma-separated CORS origins. Add production server hostname if needed.</td></tr>
+  </tbody>
+</table>
+
+<h3>Backend Constants (main.py)</h3>
+<table>
+  <thead><tr><th>Constant</th><th>Value</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>CACHE_TTL_SECONDS</code></td><td>1800</td><td>Cache time-to-live (30 minutes)</td></tr>
+    <tr><td><code>HEALTH_CHECK_INTERVAL</code></td><td>300</td><td>vCenter health auto-check interval (5 minutes)</td></tr>
+    <tr><td><code>CACHE_DIR</code></td><td><code>~/.vmware-dashboard-cache</code></td><td>Directory for all persistent cache files</td></tr>
+    <tr><td><code>CREDENTIALS_FILE</code></td><td><code>&lt;CACHE_DIR&gt;/vcenter_credentials.json</code></td><td>vCenter credentials store</td></tr>
+    <tr><td><code>CACHE_FILE</code></td><td><code>&lt;CACHE_DIR&gt;/cache.json</code></td><td>Main resource data cache</td></tr>
+  </tbody>
+</table>
+
+<h3>Frontend Configuration</h3>
+<table>
+  <thead><tr><th>File</th><th>Key</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td><code>src/config/api.ts</code></td><td><code>API_BASE</code></td><td><code>""</code> (empty string — uses same-origin proxy)</td></tr>
+    <tr><td><code>vite.config.ts</code></td><td><code>server.proxy['/api']</code></td><td>Proxies to backend during dev (set <code>API_URL</code> in .env)</td></tr>
+    <tr><td><code>vite.config.ts</code></td><td><code>preview.proxy['/api']</code></td><td>Proxies to backend in production preview (set <code>API_URL</code> in .env)</td></tr>
+  </tbody>
+</table>
+
+<div class="panel panel-note">
+  <div class="panel-title">Note</div>
+  To change the backend server address, update the proxy target in <code>vite.config.ts</code>, then rebuild the frontend with <code>npm run build</code> and restart <code>vm-frontend.service</code>.
+</div>
+
+<hr />
+
+<!-- ============================================================
+     10. OPERATIONS
+     ============================================================ -->
+<h2 id="operations">10. Operations &amp; Service Management</h2>
+
+<h3>Routine Operations</h3>
+<table>
+  <thead><tr><th>Task</th><th>Command / Action</th></tr></thead>
+  <tbody>
+    <tr><td>Check service health</td><td><code>sudo systemctl status vm-api vm-frontend</code></td></tr>
+    <tr><td>Restart backend</td><td><code>sudo systemctl restart vm-api</code></td></tr>
+    <tr><td>Restart frontend</td><td><code>sudo systemctl restart vm-frontend</code></td></tr>
+    <tr><td>View backend logs</td><td><code>sudo journalctl -u vm-api -n 100</code></td></tr>
+    <tr><td>Trigger data refresh</td><td>Settings page → "Refresh Data" button, or <code>POST /api/cache/refresh</code></td></tr>
+    <tr><td>Clear cache</td><td>Settings page → "Clear Cache" button, or <code>POST /api/cache/clear</code></td></tr>
+    <tr><td>Add a new vCenter</td><td>Settings page → "Add vCenter" → enter hostname, username, password</td></tr>
+    <tr><td>Force health check</td><td>vCenter Health page → "Check All" button</td></tr>
+    <tr><td>Enrich CMDB with Puppet</td><td>CMDB page → "Enrich with Puppet" button</td></tr>
+    <tr><td>Export CMDB</td><td>CMDB page → "Export" button → downloads JSON</td></tr>
+  </tbody>
+</table>
+
+<h3>Cache Files</h3>
+<table>
+  <thead><tr><th>File</th><th>Contents</th><th>Updated By</th></tr></thead>
+  <tbody>
+    <tr><td><code>~/.vmware-dashboard-cache/cache.json</code></td><td>VMs, hosts, datastores, networks, snapshots, vCenters</td><td>Background refresh every 30 min</td></tr>
+    <tr><td><code>~/.vmware-dashboard-cache/cmdb_history.json</code></td><td>Full historical VM CMDB (~1,943 records)</td><td>Every refresh + manual sync</td></tr>
+    <tr><td><code>~/.vmware-dashboard-cache/vcenter_credentials.json</code></td><td>vCenter hostnames, usernames, encrypted passwords</td><td>Settings page / API</td></tr>
+    <tr><td><code>~/.vmware-dashboard-cache/vcenter_health.json</code></td><td>Health check results per vCenter</td><td>Health loop every 5 min</td></tr>
+  </tbody>
+</table>
+
+<h3>Deploy a Code Change</h3>
+<h4>Backend change (Python):</h4>
+<pre><code>cd /opt/vmware-dashboard
+# Edit main.py or other Python files
+sudo systemctl restart vm-api
+sudo systemctl status vm-api  # verify it started cleanly</code></pre>
+
+<h4>Frontend change (React/TypeScript):</h4>
+<pre><code>cd /opt/vmware-dashboard
+# Edit files under src/
+npm run build
+sudo systemctl restart vm-frontend</code></pre>
+
+<hr />
+
+<!-- ============================================================
+     11. SECURITY
+     ============================================================ -->
+<h2 id="security">11. Security Considerations</h2>
+
+<table>
+  <thead><tr><th>Area</th><th>Current State</th><th>Recommendation</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>vCenter credentials at rest</td>
+      <td>Plaintext JSON file, protected by OS file permissions (chmod 600)</td>
+      <td>Migrate to HashiCorp Vault or OS-level secret manager</td>
+    </tr>
+    <tr>
+      <td>SSL verification (vCenter)</td>
+      <td>Disabled (<code>ssl._create_unverified_context()</code>)</td>
+      <td>Import internal CA cert and enable verification</td>
+    </tr>
+    <tr>
+      <td>SSL verification (PuppetDB)</td>
+      <td>Disabled (<code>requests.verify = False</code>)</td>
+      <td>Import internal CA cert and enable verification</td>
+    </tr>
+    <tr>
+      <td>CORS</td>
+      <td>Restricted to <code>localhost:5173</code> by default via <code>VM_ALLOWED_ORIGINS</code></td>
+      <td>Add production hostname to <code>VM_ALLOWED_ORIGINS</code> env var</td>
+    </tr>
+    <tr>
+      <td>Authentication</td>
+      <td>No user authentication on the dashboard itself</td>
+      <td>Add network-level access control (VPN/firewall rule) or integrate with SSO</td>
+    </tr>
+    <tr>
+      <td>API input validation</td>
+      <td>Pydantic models validate request bodies; path params are typed</td>
+      <td>Current state is acceptable for internal tooling</td>
+    </tr>
+    <tr>
+      <td>Error handling</td>
+      <td>All endpoints wrapped in try/except; errors returned as JSON (never stack traces to browser)</td>
+      <td>Good practice — maintain</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<!-- ============================================================
+     12. TROUBLESHOOTING
+     ============================================================ -->
+<h2 id="troubleshooting">12. Troubleshooting Guide</h2>
+
+<h3>Common Issues</h3>
+
+<h4>Dashboard shows no data / blank tables</h4>
+<ol>
+  <li>Check backend is running: <code>sudo systemctl status vm-api</code></li>
+  <li>Check backend logs for connection errors: <code>sudo journalctl -u vm-api -n 50</code></li>
+  <li>Verify at least one vCenter is connected: <code>GET /api/health</code> → check <code>vcenters_connected</code></li>
+  <li>If <code>vcenters_connected: 0</code> — go to Settings and reconnect vCenters</li>
+  <li>If connected but no data — trigger manual refresh: Settings → "Refresh Data"</li>
+</ol>
+
+<h4>vCenter shows "disconnected" in Settings</h4>
+<ol>
+  <li>Network issue — verify server can reach vCenter: <code>ping &lt;vcenter-hostname&gt;</code></li>
+  <li>Credential issue — click "Reconnect" and re-enter username/password</li>
+  <li>Test credentials via Settings → vCenter card → "Test Connection"</li>
+  <li>Check vCenter is responding: <code>curl -k https://&lt;vcenter&gt;/ui/</code></li>
+</ol>
+
+<h4>Cache is stale / data is out of date</h4>
+<ol>
+  <li>Check cache age: <code>GET /api/cache/status</code> → review <code>age_seconds</code> per key</li>
+  <li>If <code>refresh_in_progress: true</code>, wait for refresh to complete</li>
+  <li>Force refresh: <code>POST /api/cache/refresh</code> or Settings → "Refresh Data"</li>
+  <li>If refresh fails, check backend logs for Python exceptions</li>
+</ol>
+
+<h4>Search returns no results</h4>
+<ol>
+  <li>Ensure query is at least 2 characters</li>
+  <li>Data must be in cache — trigger a refresh first</li>
+  <li>VM searches use CMDB data; ensure <code>cmdb_history.json</code> is populated</li>
+  <li>Check <code>GET /api/search?q=test</code> directly to isolate API vs. UI issue</li>
+</ol>
+
+<h4>vCenter Health page shows all "Unknown"</h4>
+<ol>
+  <li>Click "Check All" to trigger a fresh health check</li>
+  <li>Health checks run in background — wait 30–60 seconds and refresh</li>
+  <li>If still failing, check that the server can reach vCenter hosts on ICMP (ping) and HTTPS (443)</li>
+</ol>
+
+<h4>Frontend page is blank (white screen)</h4>
+<ol>
+  <li>Check browser developer console for JavaScript errors</li>
+  <li>The top-level <code>ErrorBoundary</code> in <code>App.tsx</code> catches crashes — look for "Something went wrong" message</li>
+  <li>Try "Try again" button to reset the error boundary</li>
+  <li>Check that <code>vm-frontend.service</code> is running and serving the latest build</li>
+  <li>Hard-refresh browser (<kbd>Ctrl+Shift+R</kbd>) to clear cached JS</li>
+</ol>
+
+<h4>PuppetDB enrichment shows no data</h4>
+<ol>
+  <li>Verify network connectivity to PuppetDB: <code>curl -k https://your-puppetdb-host:8081/pdb/query/v4/nodes/ | head -20</code></li>
+  <li>PuppetDB only has records for managed hosts — VMs without Puppet agents will show no data</li>
+  <li>Check hostname matches the Puppet certname (usually FQDN)</li>
+</ol>
+
+<hr />
+
+<!-- ============================================================
+     13. FILE STRUCTURE
+     ============================================================ -->
+<h2 id="file-structure">13. Project File Structure</h2>
+
+<pre><code>/opt/vmware-dashboard/
+│
+├── main.py                    # FastAPI app — all routes, cache, session mgmt (v2.6)
+├── vcenter_fast.py            # Parallel vCenter data collector (pyVmomi PropertyCollector)
+├── cmdb_history.py            # Historical CMDB persistence and lifecycle tracking
+├── vcenter_health.py          # vCenter health checker (ping, HTTPS, SDK)
+├── puppet_client.py           # PuppetDB REST API v4 client
+├── global_search.py           # Cross-resource search engine
+│
+├── requirements.txt           # Python package dependencies
+├── package.json               # Node.js / npm configuration
+├── package-lock.json          # Lockfile for reproducible installs
+├── vite.config.ts             # Vite build config + API proxy rules
+├── tailwind.config.js         # Tailwind CSS configuration
+├── postcss.config.js          # PostCSS plugins (autoprefixer)
+├── tsconfig.json              # TypeScript compiler config
+├── tsconfig.node.json         # TypeScript config for Vite/Node tooling
+├── index.html                 # Vite entry point (references src/main.tsx)
+│
+├── src/
+│   ├── main.tsx               # React app bootstrap (renders &lt;App /&gt; into #root)
+│   ├── App.tsx                # Root router with ErrorBoundary wrapper
+│   ├── index.css              # Global CSS (Tailwind base/components/utilities)
+│   │
+│   ├── config/
+│   │   └── api.ts             # API_BASE export ("")
+│   │
+│   ├── lib/
+│   │   ├── api.ts             # Shared API helper functions
+│   │   └── utils.ts           # Utility helpers (cn() for class merging)
+│   │
+│   ├── pages/
+│   │   ├── _layout.tsx        # App shell: sidebar, search dialog, navigation
+│   │   ├── index.tsx          # Dashboard home
+│   │   ├── vms.tsx            # VM listing page
+│   │   ├── vm-detail.tsx      # Single VM detail view
+│   │   ├── hosts.tsx          # ESXi host listing
+│   │   ├── datastores.tsx     # Datastore listing with expandable rows
+│   │   ├── networks.tsx       # Network / port group listing
+│   │   ├── snapshots.tsx      # Snapshot listing
+│   │   ├── cmdb.tsx           # Historical CMDB page
+│   │   ├── vcenter-health.tsx # vCenter health monitoring dashboard
+│   │   ├── settings.tsx       # vCenter connection management
+│   │   └── not-found.tsx      # 404 page
+│   │
+│   └── components/
+│       └── ui/
+│           ├── badge.tsx
+│           ├── button.tsx
+│           ├── card.tsx
+│           ├── checkbox.tsx
+│           ├── collapsible.tsx
+│           ├── command-search.tsx
+│           ├── detail-dialog.tsx
+│           ├── dialog.tsx
+│           ├── input.tsx
+│           ├── label.tsx
+│           ├── progress.tsx
+│           ├── select.tsx
+│           ├── skeleton.tsx
+│           ├── table.tsx
+│           └── tabs.tsx
+│
+└── docs/
+    └── VM_Dashboard_Confluence.html   # This documentation file</code></pre>
+
+<hr />
+
+<div class="panel panel-success">
+  <div class="panel-title">How to Import This Page into Confluence</div>
+  <ol>
+    <li>In Confluence, create a new page or open an existing one.</li>
+    <li>Click the <strong>+</strong> (Insert) menu → <strong>Other Macros</strong> → search for <strong>HTML</strong>.</li>
+    <li>Insert an <strong>HTML macro</strong> and paste the <code>&lt;body&gt;</code> content of this file (everything between the <code>&lt;body&gt;</code> tags).</li>
+    <li>Alternatively, use <strong>Import Word Document</strong> if you save this HTML as a <code>.doc</code> file from a browser (File → Save As).</li>
+    <li>For best results with the Confluence editor, copy each section into native Confluence headings, tables, and code blocks.</li>
+  </ol>
+</div>
+
+<hr />
+<p style="font-size:12px; color:#5E6C84; text-align:center;">
+  VMware Dashboard v2.6 &nbsp;|&nbsp; Cloud Infrastructure Engineering &nbsp;|&nbsp; Generated April 2026
+</p>
+
+</body>
+</html>

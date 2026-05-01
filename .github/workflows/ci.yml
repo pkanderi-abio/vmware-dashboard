@@ -1,0 +1,45 @@
+﻿name: CI — Type Check & Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  frontend-ci:
+    name: Frontend — Type Check & Build
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/opt/vmware-dashboard' }}
+
+    steps:
+      - name: Install dependencies
+        run: cd "$DEPLOY_DIR" && npm ci --silent
+
+      - name: TypeScript type-check
+        run: cd "$DEPLOY_DIR" && npx tsc --noEmit
+
+      - name: Build frontend
+        run: cd "$DEPLOY_DIR" && npm run build
+        env:
+          API_URL: http://localhost:8000
+
+  backend-ci:
+    name: Backend — Syntax & Import Check
+    runs-on: self-hosted
+    timeout-minutes: 5
+
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/opt/vmware-dashboard' }}
+
+    steps:
+      - name: Syntax check all Python files
+        run: |
+          cd "$DEPLOY_DIR"
+          source venv/bin/activate
+          python -m compileall -q main.py vcenter_fast.py vcenter_health.py cmdb_history.py puppet_client.py global_search.py

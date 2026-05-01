@@ -1,0 +1,62 @@
+﻿# ─── Build outputs ───────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+*.local
+
+# ─── Node.js ─────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ─── Environment & Secrets ───────────────────────────────────────────────────
+# NEVER commit credentials or environment files
+.env
+.env.*
+!.env.example
+
+# ─── Runtime / cache directories (stored outside project by design) ──────────
+# Cache lives at ~/.vmware-dashboard-cache/ — never inside this repo
+*.cache
+*.log
+logs/
+
+# ─── Editor & OS ─────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── TypeScript ──────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── Vite ────────────────────────────────────────────────────────────────────
+.vite/

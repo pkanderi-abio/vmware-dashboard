@@ -1,0 +1,9 @@
+# requirements.txt - Python dependencies
+fastapi==0.109.0
+uvicorn==0.27.0
+requests==2.31.0
+python-dotenv==1.0.0
+redis==5.0.1
+pydantic==2.5.3
+pydantic-settings==2.1.0
+urllib3==2.1.0
