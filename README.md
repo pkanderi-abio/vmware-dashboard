@@ -1,6 +1,6 @@
 ﻿# VMware Dashboard
 
-> **Cloud Infrastructure Engineering Dashboard** — A full-stack monitoring tool for VMware vCenter environments.  
+> **VMware Dashboard** — A full-stack monitoring tool for VMware vCenter environments.  
 > Provides real-time visibility into ESXi hosts, virtual machines, datastores, networks, and VM snapshots across multiple vCenter endpoints.
 
 ---
