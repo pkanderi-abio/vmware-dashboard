@@ -62,6 +62,9 @@ CACHE_TTL_SECONDS = 1800
 CACHE_DIR = os.path.expanduser("~/.vmware-dashboard-cache")
 CREDENTIALS_FILE = os.path.join(CACHE_DIR, "vcenter_credentials.json")
 CACHE_FILE = os.path.join(CACHE_DIR, "cache.json")
+TRENDING_FILE = os.path.join(CACHE_DIR, "trending.json")
+TRENDING_MAX_POINTS = 720   # 30 days of hourly snapshots
+TRENDING_MIN_INTERVAL = 1800  # minimum seconds between snapshots
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 ALLOWED_ORIGINS = [
@@ -421,6 +424,53 @@ def _add_ids(items: List[Dict[str, Any]]) -> None:
         item["ID"] = i
 
 
+def _snapshot_trending() -> None:
+    """Append one metric snapshot to trending.json after each background refresh."""
+    vms = data_cache.get("vms", ignore_ttl=True) or []
+    hosts = data_cache.get("hosts", ignore_ttl=True) or []
+    datastores = data_cache.get("datastores", ignore_ttl=True) or []
+    if not hosts and not vms and not datastores:
+        return
+
+    existing: List[Dict[str, Any]] = []
+    if os.path.exists(TRENDING_FILE):
+        with open(TRENDING_FILE) as f:
+            existing = json.load(f) or []
+
+    now_ts = time.time()
+    if existing and now_ts - float(existing[-1].get("timestamp", 0)) < TRENDING_MIN_INTERVAL:
+        return
+
+    powered_on = [v for v in vms if "on" in str(v.get("powerState", "")).lower()]
+    cpu_vals = [float(h.get("cpuUsagePct") or 0) for h in hosts]
+    mem_vals = [float(h.get("memoryUsagePct") or 0) for h in hosts]
+    avg_cpu = round(sum(cpu_vals) / len(cpu_vals), 1) if cpu_vals else 0.0
+    avg_mem = round(sum(mem_vals) / len(mem_vals), 1) if mem_vals else 0.0
+    total_cap = sum(int(d.get("capacityGB") or 0) for d in datastores)
+    total_free = sum(int(d.get("freeSpaceGB") or 0) for d in datastores)
+    avg_storage = round((total_cap - total_free) / total_cap * 100, 1) if total_cap > 0 else 0.0
+
+    existing.append({
+        "timestamp": now_ts,
+        "datetime": datetime.now().isoformat(timespec="minutes"),
+        "avgCpuPct": avg_cpu,
+        "avgMemPct": avg_mem,
+        "avgStoragePct": avg_storage,
+        "totalVMs": len(vms),
+        "poweredOnVMs": len(powered_on),
+        "totalHosts": len(hosts),
+        "totalStorageGB": total_cap,
+        "freeStorageGB": total_free,
+    })
+    if len(existing) > TRENDING_MAX_POINTS:
+        existing = existing[-TRENDING_MAX_POINTS:]
+
+    tmp = f"{TRENDING_FILE}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(existing, f)
+    os.replace(tmp, TRENDING_FILE)
+
+
 def background_refresh() -> None:
     global refresh_in_progress
 
@@ -493,6 +543,10 @@ def background_refresh() -> None:
                 for moref, tag_names in tag_data.get("vm_tags", {}).items():
                     all_vm_tags.setdefault(moref, []).extend(tag_names)
         data_cache.set("tags", {"tags": all_tags, "vm_tags": all_vm_tags})
+
+        # Record a trending snapshot (best-effort)
+        with suppress(Exception):
+            _snapshot_trending()
 
     except Exception:
         logger.exception("Fatal refresh error")
@@ -935,6 +989,21 @@ async def get_network(net_id: str) -> Dict[str, Any]:
 async def get_snapshots() -> Dict[str, Any]:
     data = data_cache.get("snapshots") or data_cache.get("snapshots", ignore_ttl=True) or []
     return {"success": True, "data": data, "count": len(data)}
+
+
+@app.get("/api/trending")
+async def get_trending(hours: int = 168) -> Dict[str, Any]:
+    """Return metric snapshots for the past N hours (default 168 = 7 days)."""
+    if not os.path.exists(TRENDING_FILE):
+        return {"success": True, "data": [], "message": "No trending data yet — data will appear after the first background refresh."}
+    try:
+        with open(TRENDING_FILE) as f:
+            all_data: List[Dict[str, Any]] = json.load(f) or []
+        cutoff = time.time() - max(1, hours) * 3600
+        filtered = [p for p in all_data if float(p.get("timestamp", 0)) >= cutoff]
+        return {"success": True, "data": filtered, "count": len(filtered)}
+    except Exception as exc:
+        return {"success": False, "data": [], "message": str(exc)}
 
 
 @app.get("/api/tags")

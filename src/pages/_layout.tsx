@@ -31,7 +31,7 @@ import {
   Server, Cpu, HardDrive, Network, Camera, Database,
   Activity, Settings, Menu, X, ChevronRight, Home,
   Shield, Search, Command, Loader2, RefreshCw, Clock,
-  Sun, Moon
+  Sun, Moon, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ const navItems = [
   { path: '/networks', icon: Network, label: 'Networks' },
   { path: '/snapshots', icon: Camera, label: 'Snapshots' },
   { path: '/cmdb', icon: Database, label: 'CMDB' },
+  { path: '/trending', icon: TrendingUp, label: 'Trending' },
   { path: '/vcenter-health', icon: Activity, label: 'vCenter Health', highlight: true },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];

@@ -13,6 +13,7 @@ import CMDBPage from "./pages/cmdb";
 import SettingsPage from "./pages/settings";
 import NotFoundPage from "./pages/not-found";
 import VCenterHealthPage from "./pages/vcenter-health";
+import TrendingPage from "./pages/trending";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -61,6 +62,7 @@ function App() {
               <Route path="/networks" element={<NetworksPage />} />
               <Route path="/snapshots" element={<SnapshotsPage />} />
               <Route path="/cmdb" element={<CMDBPage />} />
+              <Route path="/trending" element={<TrendingPage />} />
               <Route path="/vcenter-health" element={<VCenterHealthPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFoundPage />} />
