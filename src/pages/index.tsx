@@ -16,6 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { api, HealthStatus } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { getThresholds } from '@/lib/thresholds';
 
 interface Alert {
   id: string;
@@ -87,6 +88,7 @@ export default function HomePage() {
   const loadData = async () => {
     setLoading(true);
     const newAlerts: Alert[] = [];
+    const thresholds = getThresholds();
     
     try {
       // Fetch health status
@@ -154,7 +156,7 @@ export default function HomePage() {
       hosts.forEach((h: any) => {
         const cpuPct = parseInt(h.cpuUsagePct || '0');
         const memPct = parseInt(h.memoryUsagePct || '0');
-        if (cpuPct >= 90) {
+        if (cpuPct >= thresholds.cpuCritical) {
           newAlerts.push({
             id: `host-cpu-${h.hostId}`,
             severity: 'critical',
@@ -165,7 +167,7 @@ export default function HomePage() {
             timestamp: new Date(),
             link: '/hosts'
           });
-        } else if (cpuPct >= 80) {
+        } else if (cpuPct >= thresholds.cpuWarning) {
           newAlerts.push({
             id: `host-cpu-${h.hostId}`,
             severity: 'warning',
@@ -177,7 +179,7 @@ export default function HomePage() {
             link: '/hosts'
           });
         }
-        if (memPct >= 90) {
+        if (memPct >= thresholds.memCritical) {
           newAlerts.push({
             id: `host-mem-${h.hostId}`,
             severity: 'critical',
@@ -188,7 +190,7 @@ export default function HomePage() {
             timestamp: new Date(),
             link: '/hosts'
           });
-        } else if (memPct >= 80) {
+        } else if (memPct >= thresholds.memWarning) {
           newAlerts.push({
             id: `host-mem-${h.hostId}`,
             severity: 'warning',
@@ -249,7 +251,7 @@ export default function HomePage() {
       
       const datastoresHighUsage = datastores.filter((d: any) => {
         const usage = parseInt(d.usagePct || '0');
-        return usage >= 85;
+        return usage >= thresholds.storageWarning;
       });
       
       // Datastore alerts
@@ -269,7 +271,7 @@ export default function HomePage() {
             link: '/datastores'
           });
         }
-        if (usage >= 95) {
+        if (usage >= thresholds.storageCritical) {
           newAlerts.push({
             id: `ds-space-${d.datastoreId}`,
             severity: 'critical',
@@ -280,7 +282,7 @@ export default function HomePage() {
             timestamp: new Date(),
             link: '/datastores'
           });
-        } else if (usage >= 85) {
+        } else if (usage >= thresholds.storageWarning) {
           newAlerts.push({
             id: `ds-space-${d.datastoreId}`,
             severity: 'warning',
@@ -297,9 +299,9 @@ export default function HomePage() {
       // Calculate snapshot stats and alerts
       const snapshotsOld = snapshots.filter((s: any) => {
         const age = parseInt(s.ageDays || '0');
-        return age > 7 && age <= 30;
+        return age > thresholds.snapshotOldDays && age <= thresholds.snapshotVeryOldDays;
       });
-      const snapshotsVeryOld = snapshots.filter((s: any) => parseInt(s.ageDays || '0') > 30);
+      const snapshotsVeryOld = snapshots.filter((s: any) => parseInt(s.ageDays || '0') > thresholds.snapshotVeryOldDays);
       
       // Snapshot alerts
       snapshotsVeryOld.forEach((s: any) => {
@@ -422,7 +424,7 @@ export default function HomePage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <Activity className="w-8 h-8 text-primary" />
-            CIE Asset Dashboard
+            VMware Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">Infrastructure monitoring and management</p>
         </div>

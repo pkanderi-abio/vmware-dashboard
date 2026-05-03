@@ -19,11 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
-
-const HIGH_CPU_THRESHOLD = 80;
-const HIGH_MEM_THRESHOLD = 80;
-const WARN_CPU_THRESHOLD = 50;
-const WARN_MEM_THRESHOLD = 50;
+import { getThresholds } from '@/lib/thresholds';
 
 interface Host {
   hostId: string;
@@ -92,6 +88,7 @@ export default function HostsPage() {
   const [filterVCenter, setFilterVCenter] = useState<string>('all');
   const [filterCluster, setFilterCluster] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
+  const thresholds = useMemo(() => getThresholds(), []);
 
   useEffect(() => { loadData(); }, []);
 
@@ -135,8 +132,8 @@ export default function HostsPage() {
       
       if (isConnected(h)) {
         connected++;
-        if (getCpuUsage(h) >= HIGH_CPU_THRESHOLD) highCpu++;
-        if (getMemUsage(h) >= HIGH_MEM_THRESHOLD) highMem++;
+        if (getCpuUsage(h) >= thresholds.cpuWarning) highCpu++;
+        if (getMemUsage(h) >= thresholds.memWarning) highMem++;
       } else {
         disconnected++;
       }
@@ -150,12 +147,12 @@ export default function HostsPage() {
     
     const totalMemoryTB = (totalMemoryGB / 1024).toFixed(1);
     
-    return { 
+    return {
       total, connected, disconnected, maintenance,
-      highCpu, highMem, totalVMs, totalCores, 
+      highCpu, highMem, totalVMs, totalCores,
       totalMemoryGB, totalMemoryTB
     };
-  }, [hosts]);
+  }, [hosts, thresholds]);
 
   // Filter hosts
   const filteredHosts = useMemo(() => {
@@ -166,8 +163,8 @@ export default function HostsPage() {
       case 'connected': result = result.filter(h => isConnected(h)); break;
       case 'disconnected': result = result.filter(h => !isConnected(h)); break;
       case 'maintenance': result = result.filter(h => isInMaintenance(h)); break;
-      case 'highCpu': result = result.filter(h => isConnected(h) && getCpuUsage(h) >= HIGH_CPU_THRESHOLD); break;
-      case 'highMem': result = result.filter(h => isConnected(h) && getMemUsage(h) >= HIGH_MEM_THRESHOLD); break;
+      case 'highCpu': result = result.filter(h => isConnected(h) && getCpuUsage(h) >= thresholds.cpuWarning); break;
+      case 'highMem': result = result.filter(h => isConnected(h) && getMemUsage(h) >= thresholds.memWarning); break;
     }
 
     // Search
@@ -195,7 +192,7 @@ export default function HostsPage() {
     });
     
     return result;
-  }, [hosts, searchTerm, filterVCenter, filterCluster, sortField, sortDirection, activeTab]);
+  }, [hosts, searchTerm, filterVCenter, filterCluster, sortField, sortDirection, activeTab, thresholds]);
 
   // Status badge
   const getStatusBadge = (host: Host) => {
@@ -208,7 +205,6 @@ export default function HostsPage() {
     return <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">Disconnected</span>;
   };
 
-  // Export CSV
   const exportCSV = () => {
     const h = ['Host Name','Status','Cluster','vCenter','Datacenter','CPU Cores','Memory GB','CPU%','Mem%','VMs','ESXi Version'];
     const rows = filteredHosts.map(host => [host.hostName,host.connectionState,host.clusterName,host.vcenterName,host.datacenterName,host.cpuCores,host.memoryGB,host.cpuUsagePct,host.memoryUsagePct,host.vmCount,host.esxiVersion]);
@@ -216,6 +212,24 @@ export default function HostsPage() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
     a.download = 'hosts_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+  };
+
+  const exportJSON = () => {
+    const data = filteredHosts.map(host => ({
+      hostName: host.hostName, connectionState: host.connectionState,
+      clusterName: host.clusterName || host.cluster, vcenterName: host.vcenterName,
+      datacenterName: host.datacenterName || host.datacenter,
+      cpuCores: host.cpuCores, memoryGB: host.memoryGB,
+      cpuUsagePct: host.cpuUsagePct, memoryUsagePct: host.memoryUsagePct,
+      vmCount: host.vmCount, esxiVersion: host.esxiVersion || host.version,
+      esxiBuild: host.esxiBuild || host.build, vendor: host.vendor || host.manufacturer,
+      model: host.model, serialNumber: host.serialNumber,
+      uptimeDays: host.uptimeDays, bootTime: host.bootTime,
+    }));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)],{type:'application/json'}));
+    a.download = 'hosts_' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
   };
 
@@ -239,7 +253,10 @@ export default function HostsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={exportCSV} variant="outline" size="sm" className="h-8 text-xs">
-            <Download className="w-3 h-3 mr-1" />Export
+            <Download className="w-3 h-3 mr-1" />CSV
+          </Button>
+          <Button onClick={exportJSON} variant="outline" size="sm" className="h-8 text-xs">
+            <Download className="w-3 h-3 mr-1" />JSON
           </Button>
           <Button onClick={loadData} variant="outline" size="sm" className="h-8 text-xs">
             <RefreshCw className={cn("w-3 h-3 mr-1", loading && "animate-spin")} />Refresh
@@ -293,8 +310,8 @@ export default function HostsPage() {
           <TabsTrigger value="connected" className="text-[11px] h-7 px-2 text-green-600">Connected ({stats.connected})</TabsTrigger>
           {stats.disconnected > 0 && <TabsTrigger value="disconnected" className="text-[11px] h-7 px-2 text-red-600">Disconnected ({stats.disconnected})</TabsTrigger>}
           {stats.maintenance > 0 && <TabsTrigger value="maintenance" className="text-[11px] h-7 px-2 text-yellow-600">Maintenance ({stats.maintenance})</TabsTrigger>}
-          {stats.highCpu > 0 && <TabsTrigger value="highCpu" className="text-[11px] h-7 px-2 text-red-600">CPU≥80% ({stats.highCpu})</TabsTrigger>}
-          {stats.highMem > 0 && <TabsTrigger value="highMem" className="text-[11px] h-7 px-2 text-red-600">Mem≥80% ({stats.highMem})</TabsTrigger>}
+          {stats.highCpu > 0 && <TabsTrigger value="highCpu" className="text-[11px] h-7 px-2 text-red-600">CPU≥{thresholds.cpuWarning}% ({stats.highCpu})</TabsTrigger>}
+          {stats.highMem > 0 && <TabsTrigger value="highMem" className="text-[11px] h-7 px-2 text-red-600">Mem≥{thresholds.memWarning}% ({stats.highMem})</TabsTrigger>}
         </TabsList>
       </Tabs>
 
@@ -381,8 +398,8 @@ export default function HostsPage() {
                           {connected ? (
                             <span className={cn(
                               "inline-block w-10 px-1 py-0.5 rounded text-[10px] font-medium text-center",
-                              cpuPct >= HIGH_CPU_THRESHOLD ? "bg-red-100 text-red-700" :
-                              cpuPct >= WARN_CPU_THRESHOLD ? "bg-yellow-100 text-yellow-700" : "bg-gray-50"
+                              cpuPct >= thresholds.cpuWarning ? "bg-red-100 text-red-700" :
+                              cpuPct >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-gray-50"
                             )}>
                               {cpuPct.toFixed(0)}%
                             </span>
@@ -392,8 +409,8 @@ export default function HostsPage() {
                           {connected ? (
                             <span className={cn(
                               "inline-block w-10 px-1 py-0.5 rounded text-[10px] font-medium text-center",
-                              memPct >= HIGH_MEM_THRESHOLD ? "bg-red-100 text-red-700" :
-                              memPct >= WARN_MEM_THRESHOLD ? "bg-yellow-100 text-yellow-700" : "bg-gray-50"
+                              memPct >= thresholds.memWarning ? "bg-red-100 text-red-700" :
+                              memPct >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-gray-50"
                             )}>
                               {memPct.toFixed(0)}%
                             </span>
@@ -433,12 +450,12 @@ export default function HostsPage() {
                                   <div>
                                     <div className="flex justify-between mb-0.5">
                                       <span className="text-muted-foreground">Usage:</span>
-                                      <span className={cn("font-medium", cpuPct >= 80 ? "text-red-600" : cpuPct >= 50 ? "text-yellow-600" : "text-green-600")}>
+                                      <span className={cn("font-medium", cpuPct >= thresholds.cpuWarning ? "text-red-600" : cpuPct >= 50 ? "text-yellow-600" : "text-green-600")}>
                                         {cpuPct.toFixed(1)}%
                                       </span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-1">
-                                      <div className={cn("h-1 rounded-full", cpuPct >= 80 ? "bg-red-500" : cpuPct >= 50 ? "bg-yellow-500" : "bg-green-500")} style={{width: Math.min(cpuPct, 100) + '%'}}></div>
+                                      <div className={cn("h-1 rounded-full", cpuPct >= thresholds.cpuWarning ? "bg-red-500" : cpuPct >= 50 ? "bg-yellow-500" : "bg-green-500")} style={{width: Math.min(cpuPct, 100) + '%'}}></div>
                                     </div>
                                   </div>
                                 </div>
@@ -454,12 +471,12 @@ export default function HostsPage() {
                                   <div>
                                     <div className="flex justify-between mb-0.5">
                                       <span className="text-muted-foreground">Usage:</span>
-                                      <span className={cn("font-medium", memPct >= 80 ? "text-red-600" : memPct >= 50 ? "text-yellow-600" : "text-green-600")}>
+                                      <span className={cn("font-medium", memPct >= thresholds.memWarning ? "text-red-600" : memPct >= 50 ? "text-yellow-600" : "text-green-600")}>
                                         {memPct.toFixed(1)}%
                                       </span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-1">
-                                      <div className={cn("h-1 rounded-full", memPct >= 80 ? "bg-red-500" : memPct >= 50 ? "bg-yellow-500" : "bg-green-500")} style={{width: Math.min(memPct, 100) + '%'}}></div>
+                                      <div className={cn("h-1 rounded-full", memPct >= thresholds.memWarning ? "bg-red-500" : memPct >= 50 ? "bg-yellow-500" : "bg-green-500")} style={{width: Math.min(memPct, 100) + '%'}}></div>
                                     </div>
                                   </div>
                                 </div>

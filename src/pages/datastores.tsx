@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import {
   HardDrive, RefreshCw, Search, CheckCircle, XCircle,
-  AlertTriangle, Database, Server, ChevronRight, ChevronDown
+  AlertTriangle, Database, Server, ChevronRight, ChevronDown, Download
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { getThresholds } from '@/lib/thresholds';
 
 interface Datastore {
   ID?: number;
@@ -39,9 +40,9 @@ function isAccessible(d: Datastore) {
   if (val === undefined || val === null) return true;
   return String(val).toLowerCase() !== 'no' && String(val).toLowerCase() !== 'false';
 }
-function getUsageSeverity(pct: number): 'ok' | 'warning' | 'critical' {
-  if (pct >= 95) return 'critical';
-  if (pct >= 85) return 'warning';
+function getUsageSeverity(pct: number, criticalPct: number, warningPct: number): 'ok' | 'warning' | 'critical' {
+  if (pct >= criticalPct) return 'critical';
+  if (pct >= warningPct) return 'warning';
   return 'ok';
 }
 
@@ -52,6 +53,7 @@ export default function DatastoresPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const thresholds = getThresholds();
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
@@ -88,9 +90,9 @@ export default function DatastoresPage() {
     const usage = getUsage(d);
     const matchStatus = statusFilter === 'all' ||
       (statusFilter === 'inaccessible' && !accessible) ||
-      (statusFilter === 'critical' && accessible && usage >= 95) ||
-      (statusFilter === 'warning' && accessible && usage >= 85 && usage < 95) ||
-      (statusFilter === 'healthy' && accessible && usage < 85);
+      (statusFilter === 'critical' && accessible && usage >= thresholds.storageCritical) ||
+      (statusFilter === 'warning' && accessible && usage >= thresholds.storageWarning && usage < thresholds.storageCritical) ||
+      (statusFilter === 'healthy' && accessible && usage < thresholds.storageWarning);
     return matchSearch && matchType && matchStatus;
   });
 
@@ -99,9 +101,40 @@ export default function DatastoresPage() {
   const overallUsage = totalCapacityGB > 0
     ? Math.round(((totalCapacityGB - totalFreeGB) / totalCapacityGB) * 100)
     : 0;
-  const criticalCount = datastores.filter(d => isAccessible(d) && getUsage(d) >= 95).length;
-  const warningCount = datastores.filter(d => isAccessible(d) && getUsage(d) >= 85 && getUsage(d) < 95).length;
+  const criticalCount = datastores.filter(d => isAccessible(d) && getUsage(d) >= thresholds.storageCritical).length;
+  const warningCount = datastores.filter(d => isAccessible(d) && getUsage(d) >= thresholds.storageWarning && getUsage(d) < thresholds.storageCritical).length;
   const inaccessibleCount = datastores.filter(d => !isAccessible(d)).length;
+
+  const exportCSV = () => {
+    const h = ['Name','Type','vCenter','Capacity GB','Free GB','Used GB','Usage%','Accessible','Host Count','VM Count'];
+    const rows = filtered.map(d => [
+      getName(d), d.type || 'Unknown', d.vcenterName || '',
+      getCapacityGB(d), getFreeGB(d),
+      parseInt(String(d.usedSpaceGB ?? (getCapacityGB(d) - getFreeGB(d)))),
+      getUsage(d), isAccessible(d) ? 'Yes' : 'No',
+      d.hostCount ?? '', d.vmCount ?? '',
+    ]);
+    const csv = [h,...rows].map(row => row.map(c => '"' + (c ?? '') + '"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download = 'datastores_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+  };
+
+  const exportJSON = () => {
+    const data = filtered.map(d => ({
+      name: getName(d), datastoreId: d.datastoreId, type: d.type,
+      vcenterName: d.vcenterName, capacityGB: getCapacityGB(d),
+      freeGB: getFreeGB(d),
+      usedGB: parseInt(String(d.usedSpaceGB ?? (getCapacityGB(d) - getFreeGB(d)))),
+      usagePct: getUsage(d), accessible: isAccessible(d),
+      hostCount: d.hostCount, vmCount: d.vmCount,
+    }));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)],{type:'application/json'}));
+    a.download = 'datastores_' + new Date().toISOString().split('T')[0] + '.json';
+    a.click();
+  };
 
   if (loading) {
     return (
@@ -122,10 +155,18 @@ export default function DatastoresPage() {
           </h1>
           <p className="text-muted-foreground text-sm">{datastores.length} datastores across all vCenters</p>
         </div>
-        <Button onClick={() => void loadData()} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={exportCSV} variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />CSV
+          </Button>
+          <Button onClick={exportJSON} variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />JSON
+          </Button>
+          <Button onClick={() => void loadData()} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -226,7 +267,7 @@ export default function DatastoresPage() {
                   {filtered.map((d, i) => {
                     const accessible = isAccessible(d);
                     const usage = getUsage(d);
-                    const severity = accessible ? getUsageSeverity(usage) : 'critical';
+                    const severity = accessible ? getUsageSeverity(usage, thresholds.storageCritical, thresholds.storageWarning) : 'critical';
                     const capacityGB = getCapacityGB(d);
                     const freeGB = getFreeGB(d);
                     const usedGB = parseInt(String(d.usedSpaceGB ?? (capacityGB - freeGB)));
@@ -330,9 +371,9 @@ export default function DatastoresPage() {
                                   </div>
                                   <div><span className="text-muted-foreground">Health:</span><br />
                                     {severity === 'critical'
-                                      ? <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs mt-1"><AlertTriangle className="w-3 h-3 mr-1" />Critical (&gt;95%)</Badge>
+                                      ? <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs mt-1"><AlertTriangle className="w-3 h-3 mr-1" />Critical (&gt;{thresholds.storageCritical}%)</Badge>
                                       : severity === 'warning'
-                                        ? <Badge className="bg-warning/20 text-warning border-warning/30 text-xs mt-1"><AlertTriangle className="w-3 h-3 mr-1" />Warning (&gt;85%)</Badge>
+                                        ? <Badge className="bg-warning/20 text-warning border-warning/30 text-xs mt-1"><AlertTriangle className="w-3 h-3 mr-1" />Warning (&gt;{thresholds.storageWarning}%)</Badge>
                                         : <Badge className="bg-success/20 text-success border-success/30 text-xs mt-1"><CheckCircle className="w-3 h-3 mr-1" />Healthy</Badge>}
                                   </div>
                                 </div>

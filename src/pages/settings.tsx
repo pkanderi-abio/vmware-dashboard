@@ -48,6 +48,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import { getApiOrigin, setApiOrigin, getApiBase } from '@/config/api';
+import { getThresholds, saveThresholds, DEFAULT_THRESHOLDS, type Thresholds } from '@/lib/thresholds';
 
 interface VCenterConnection {
   id: string;
@@ -79,6 +80,21 @@ export default function SettingsPage() {
   const [connections, setConnections] = useState<VCenterConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Threshold state
+  const [thresholdForm, setThresholdForm] = useState<Thresholds>(() => getThresholds());
+
+  const handleSaveThresholds = () => {
+    saveThresholds(thresholdForm);
+    showNotificationMessage('success', 'Alert thresholds saved.');
+  };
+
+  const handleResetThresholds = () => {
+    const defaults = { ...DEFAULT_THRESHOLDS };
+    setThresholdForm(defaults);
+    saveThresholds(defaults);
+    showNotificationMessage('success', 'Thresholds reset to defaults.');
+  };
 
   // API Config state
   const [apiOriginInput, setApiOriginInput] = useState(() => getApiOrigin());
@@ -752,6 +768,98 @@ export default function SettingsPage() {
           <p className="text-xs text-muted-foreground mt-3">
             Preference is saved in your browser and persists across sessions.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* ── ALERT THRESHOLDS ───────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-primary" />
+            Alert Thresholds
+          </CardTitle>
+          <CardDescription>Configure when alerts are triggered. Changes apply on next page load.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><Cpu className="w-4 h-4 text-cyan-500" /> CPU Usage</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Warning (%)</label>
+                  <Input type="number" min={1} max={99} value={thresholdForm.cpuWarning}
+                    onChange={e => setThresholdForm(f => ({ ...f, cpuWarning: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Critical (%)</label>
+                  <Input type="number" min={1} max={100} value={thresholdForm.cpuCritical}
+                    onChange={e => setThresholdForm(f => ({ ...f, cpuCritical: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><MemoryStick className="w-4 h-4 text-purple-500" /> Memory Usage</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Warning (%)</label>
+                  <Input type="number" min={1} max={99} value={thresholdForm.memWarning}
+                    onChange={e => setThresholdForm(f => ({ ...f, memWarning: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Critical (%)</label>
+                  <Input type="number" min={1} max={100} value={thresholdForm.memCritical}
+                    onChange={e => setThresholdForm(f => ({ ...f, memCritical: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><HardDrive className="w-4 h-4 text-orange-500" /> Datastore Usage</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Warning (%)</label>
+                  <Input type="number" min={1} max={99} value={thresholdForm.storageWarning}
+                    onChange={e => setThresholdForm(f => ({ ...f, storageWarning: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Critical (%)</label>
+                  <Input type="number" min={1} max={100} value={thresholdForm.storageCritical}
+                    onChange={e => setThresholdForm(f => ({ ...f, storageCritical: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><Camera className="w-4 h-4 text-green-500" /> Snapshot Age</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Warning (days)</label>
+                  <Input type="number" min={1} value={thresholdForm.snapshotOldDays}
+                    onChange={e => setThresholdForm(f => ({ ...f, snapshotOldDays: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Critical (days)</label>
+                  <Input type="number" min={1} value={thresholdForm.snapshotVeryOldDays}
+                    onChange={e => setThresholdForm(f => ({ ...f, snapshotVeryOldDays: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <Button onClick={handleSaveThresholds} size="sm">
+              <CheckCircle className="w-4 h-4 mr-2" /> Save Thresholds
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleResetThresholds}>
+              Reset to Defaults
+            </Button>
+            <span className="text-xs text-muted-foreground">Changes apply to all pages on next navigation.</span>
+          </div>
         </CardContent>
       </Card>
 
