@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
+import { api } from '@/lib/api';
 
 const HIGH_CPU_THRESHOLD = 80;
 const HIGH_MEM_THRESHOLD = 80;
@@ -218,23 +219,33 @@ export default function VMsPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterVCenter, setFilterVCenter] = useState<string>('all');
   const [filterPower, setFilterPower] = useState<string>('all');
+  const [filterTag, setFilterTag] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('all');
+  const [tagMap, setTagMap] = useState<Record<string, string[]>>({});
+  const [allTagNames, setAllTagNames] = useState<string[]>([]);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(getApiBase() + '/cmdb/vms?include_decommissioned=false');
-      const data = await res.json();
-      if (data.success && data.data) setVms(data.data);
-    } catch {
-      try {
-        const res = await fetch(getApiBase() + '/vms');
-        const data = await res.json();
-        if (data.data) setVms(data.data);
-      } catch {}
-    }
+      const [vmRes, tagRes] = await Promise.all([
+        fetch(getApiBase() + '/cmdb/vms?include_decommissioned=false').then(r => r.json()).catch(() => null),
+        api.getTags().catch(() => null),
+      ]);
+      if (vmRes?.success && vmRes.data) setVms(vmRes.data);
+      else {
+        try {
+          const r2 = await fetch(getApiBase() + '/vms');
+          const d2 = await r2.json();
+          if (d2.data) setVms(d2.data);
+        } catch {}
+      }
+      if (tagRes?.success && tagRes.data) {
+        setTagMap(tagRes.data.vm_tags || {});
+        setAllTagNames(tagRes.tag_names || []);
+      }
+    } catch {}
     setLoading(false);
   };
 
@@ -332,6 +343,12 @@ export default function VMsPage() {
     
     if (filterVCenter !== 'all') result = result.filter(v => v.vcenterName === filterVCenter);
     if (filterPower !== 'all') result = result.filter(v => filterPower === 'on' ? isPoweredOn(v) : !isPoweredOn(v));
+    if (filterTag !== 'all') {
+      result = result.filter(v => {
+        const vmTags = tagMap[v.vmId] || [];
+        return vmTags.includes(filterTag);
+      });
+    }
 
     result.sort((a, b) => {
       let av: any, bv: any;
@@ -348,7 +365,7 @@ export default function VMsPage() {
     });
     
     return result;
-  }, [vms, searchTerm, filterVCenter, filterPower, sortField, sortDirection, activeTab]);
+  }, [vms, searchTerm, filterVCenter, filterPower, filterTag, sortField, sortDirection, activeTab, tagMap]);
 
   const getTypeBadge = (vm: VM) => {
     const t = detectVMType(vm);
@@ -500,6 +517,15 @@ export default function VMsPage() {
             <SelectItem value="off">Off</SelectItem>
           </SelectContent>
         </Select>
+        {allTagNames.length > 0 && (
+          <Select value={filterTag} onValueChange={setFilterTag}>
+            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="All Tags" /></SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="all">All Tags</SelectItem>
+              {allTagNames.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}
@@ -537,6 +563,7 @@ export default function VMsPage() {
                   const vmType = detectVMType(vm);
                   const hasAttrs = vm.customAttributes && Object.keys(vm.customAttributes).length > 0;
                   const hasPuppet = vm.puppetData?.puppet_found;
+                  const vmTags = tagMap[vm.vmId] || [];
                   const cpuPct = getCpuUsage(vm);
                   const memPct = getMemUsage(vm);
                   const snapCount = parseInt(String(vm.snapshotCount || 0));
@@ -557,6 +584,7 @@ export default function VMsPage() {
                           <div className="flex items-center justify-center gap-0.5">
                             {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                             {hasAttrs && <Tag className="w-2.5 h-2.5 text-blue-500" />}
+                            {vmTags.length > 0 && <Tag className="w-2.5 h-2.5 text-green-500" />}
                             {hasPuppet && <Terminal className="w-2.5 h-2.5 text-purple-500" />}
                             {snapCount > 0 && <AlertTriangle className="w-2.5 h-2.5 text-yellow-500" />}
                           </div>
@@ -729,6 +757,20 @@ export default function VMsPage() {
                                 </h4>
                                 <p className="text-muted-foreground">{vm.guestOS || '-'}</p>
                               </div>
+
+                              {/* vSphere Tags */}
+                              {vmTags.length > 0 && (
+                                <div className="bg-background p-2.5 rounded border text-xs md:col-span-2">
+                                  <h4 className="font-semibold mb-1.5 flex items-center gap-1.5 text-green-600">
+                                    <Tag className="w-3.5 h-3.5" />vSphere Tags ({vmTags.length})
+                                  </h4>
+                                  <div className="flex flex-wrap gap-1">
+                                    {vmTags.map((tag, i) => (
+                                      <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">{tag}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
 
                               {/* Datastores */}
                               {vm.datastores && vm.datastores.length > 0 && (

@@ -131,6 +131,10 @@ class ApiClient {
     return this.request<any[]>('/snapshots');
   }
 
+  async getTags(): Promise<ApiResponse<{ tags: any[]; vm_tags: Record<string, string[]>; tag_names: string[] }>> {
+    return this.request('/tags');
+  }
+
   // ============================================
   // vCenter Management
   // ============================================

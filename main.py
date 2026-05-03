@@ -29,6 +29,7 @@ from vcenter_fast import collect_vcenter_data_parallel
 from vcenter_health import vcenter_health as vc_health_checker
 from puppet_client import puppet_client
 from global_search import GlobalSearch
+from vcenter_tags import collect_vsphere_tags
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -480,6 +481,19 @@ def background_refresh() -> None:
             connected = list(pyvmomi_sessions.keys())
             historical_cmdb.update_from_refresh(vms, connected)
 
+        # Collect vSphere tags via CIS REST API (best-effort, non-blocking)
+        all_tags: List[Dict[str, Any]] = []
+        all_vm_tags: Dict[str, List[str]] = {}
+        for cred in enabled_creds:
+            with suppress(Exception):
+                tag_data = collect_vsphere_tags(
+                    cred["hostname"], cred["username"], cred["password"]
+                )
+                all_tags.extend(tag_data.get("tags", []))
+                for moref, tag_names in tag_data.get("vm_tags", {}).items():
+                    all_vm_tags.setdefault(moref, []).extend(tag_names)
+        data_cache.set("tags", {"tags": all_tags, "vm_tags": all_vm_tags})
+
     except Exception:
         logger.exception("Fatal refresh error")
     finally:
@@ -921,6 +935,18 @@ async def get_network(net_id: str) -> Dict[str, Any]:
 async def get_snapshots() -> Dict[str, Any]:
     data = data_cache.get("snapshots") or data_cache.get("snapshots", ignore_ttl=True) or []
     return {"success": True, "data": data, "count": len(data)}
+
+
+@app.get("/api/tags")
+async def get_tags() -> Dict[str, Any]:
+    data = data_cache.get("tags", ignore_ttl=True) or {"tags": [], "vm_tags": {}}
+    tag_names = sorted({t["name"] for t in data.get("tags", []) if t.get("name")})
+    return {
+        "success": True,
+        "data": data,
+        "tag_names": tag_names,
+        "count": len(data.get("tags", [])),
+    }
 
 
 @app.get("/api/health-check/status")
