@@ -1,0 +1,22 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = [
+    "ignore::DeprecationWarning:fastapi.*",
+    "ignore::DeprecationWarning:starlette.*",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"
+exclude = ["venv", "dist", "node_modules", ".venv"]
+
+[tool.ruff.lint]
+# Load-bearing checks only: pyflakes (undefined/unused names) + bugbear (real
+# bugs) + pycodestyle errors. Style-only lints (UP/W293) and long lines are
+# deferred so CI doesn't demand a repo-wide sweep before every merge.
+select = ["E", "F", "B"]
+ignore = ["E501", "E722", "B008", "B023"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

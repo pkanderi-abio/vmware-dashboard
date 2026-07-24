@@ -1,4 +1,4 @@
-﻿name: Deploy to Production
+name: Deploy to Production
 
 on:
   push:
@@ -20,7 +20,15 @@ jobs:
       DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/opt/vmware-dashboard' }}
 
     steps:
-      # ── 1. Deploy (runner runs directly on the server) ────────────────────
+      # ── 1. Record the currently-deployed SHA so we can roll back ──────────
+      - name: Record previous SHA
+        id: prev
+        run: |
+          cd "$DEPLOY_DIR"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Current SHA before deploy: $(git rev-parse HEAD)"
+
+      # ── 2. Deploy ────────────────────────────────────────────────────────
       - name: Pull latest code
         run: |
           cd "$DEPLOY_DIR"
@@ -47,8 +55,9 @@ jobs:
           sudo systemctl restart vm-api vm-frontend
           sudo systemctl is-active vm-api vm-frontend
 
-      # ── 2. Health check ───────────────────────────────────────────────────
+      # ── 3. Health check ──────────────────────────────────────────────────
       - name: Verify API is responding
+        id: healthcheck
         run: |
           echo "Waiting for API to start..."
           for i in $(seq 1 12); do
@@ -61,5 +70,29 @@ jobs:
             sleep 5
           done
           echo "ERROR: API did not respond after 60s"
+          sudo systemctl status vm-api --no-pager
+          exit 1
+
+      # ── 4. Roll back on health-check failure ─────────────────────────────
+      - name: Rollback on failure
+        if: failure() && steps.prev.outputs.sha != ''
+        run: |
+          cd "$DEPLOY_DIR"
+          echo "::error::Deploy failed — rolling back to ${{ steps.prev.outputs.sha }}"
+          git reset --hard "${{ steps.prev.outputs.sha }}"
+          source venv/bin/activate
+          pip install -q -r requirements.txt
+          npm ci --silent
+          npm run build
+          sudo systemctl restart vm-api vm-frontend
+          # Second health-check on the rolled-back version.
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost:8000/api/health >/dev/null 2>&1; then
+              echo "Rollback complete — service healthy on previous SHA."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Rollback also failed — service is down. Manual intervention required."
           sudo systemctl status vm-api --no-pager
           exit 1

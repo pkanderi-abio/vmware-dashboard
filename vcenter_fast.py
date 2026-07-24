@@ -4,12 +4,33 @@ Fast vCenter Data Collection using PropertyCollector
 Optimized for large-scale environments
 """
 
-from pyVmomi import vim, vmodl
-from pyVim.connect import SmartConnect, Disconnect
+import logging
+import os
 import ssl
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
+
+try:
+    from pyVim.connect import Disconnect, SmartConnect
+    from pyVmomi import vim, vmodl
+    PYVMOMI_AVAILABLE = True
+except ImportError:
+    vim = None  # type: ignore[assignment]
+    vmodl = None  # type: ignore[assignment]
+    SmartConnect = None  # type: ignore[assignment]
+    Disconnect = None  # type: ignore[assignment]
+    PYVMOMI_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+
+SSL_CA_BUNDLE = os.environ.get("VM_SSL_CA_BUNDLE") or None
+
+
+def _make_ssl_context() -> ssl.SSLContext:
+    if SSL_CA_BUNDLE:
+        return ssl.create_default_context(cafile=SSL_CA_BUNDLE)
+    return ssl._create_unverified_context()
 
 class FastVCenterCollector:
     """Optimized vCenter data collector using PropertyCollector for batch operations"""
@@ -25,7 +46,7 @@ class FastVCenterCollector:
     def connect(self):
         """Connect to vCenter"""
         try:
-            ctx = ssl._create_unverified_context()
+            ctx = _make_ssl_context()
             self.si = SmartConnect(
                 host=self.hostname,
                 user=self.username,
@@ -35,10 +56,10 @@ class FastVCenterCollector:
             )
             self.content = self.si.RetrieveContent()
             self._load_custom_attributes()
-            print(f"[FAST] ✓ Connected to {self.hostname}")
+            logger.info(f"[FAST] ✓ Connected to {self.hostname}")
             return True
         except Exception as e:
-            print(f"[FAST] ✗ Failed to connect to {self.hostname}: {e}")
+            logger.error(f"[FAST] ✗ Failed to connect to {self.hostname}: {e}")
             return False
     
     def disconnect(self):
@@ -142,7 +163,7 @@ class FastVCenterCollector:
         ]
         
         try:
-            print(f"[FAST] Collecting VMs from {self.hostname}...")
+            logger.info(f"[FAST] Collecting VMs from {self.hostname}...")
             props = self._retrieve_properties(vim.VirtualMachine, vm_properties)
             
             # Build host info cache for location lookup
@@ -290,14 +311,14 @@ class FastVCenterCollector:
                     vms.append(vm_data)
                     
                 except Exception as e:
-                    print(f"[FAST] Error processing VM: {e}")
+                    logger.error(f"[FAST] Error processing VM: {e}")
                     continue
             
             elapsed = round(time.time() - start_time, 1)
-            print(f"[FAST] ✓ Collected {len(vms)} VMs from {self.hostname} in {elapsed}s")
+            logger.info(f"[FAST] ✓ Collected {len(vms)} VMs from {self.hostname} in {elapsed}s")
             
         except Exception as e:
-            print(f"[FAST] ✗ Error collecting VMs from {self.hostname}: {e}")
+            logger.error(f"[FAST] ✗ Error collecting VMs from {self.hostname}: {e}")
             import traceback
             traceback.print_exc()
         
@@ -334,7 +355,7 @@ class FastVCenterCollector:
                 cache[host_key] = host_info
                 
         except Exception as e:
-            print(f"[FAST] Error building host cache: {e}")
+            logger.error(f"[FAST] Error building host cache: {e}")
         
         return cache
     
@@ -370,7 +391,7 @@ class FastVCenterCollector:
         ]
         
         try:
-            print(f"[FAST] Collecting Hosts from {self.hostname}...")
+            logger.info(f"[FAST] Collecting Hosts from {self.hostname}...")
             props = self._retrieve_properties(vim.HostSystem, host_properties)
             
             for obj in props:
@@ -466,14 +487,14 @@ class FastVCenterCollector:
                     hosts.append(host_data)
                     
                 except Exception as e:
-                    print(f"[FAST] Error processing host: {e}")
+                    logger.error(f"[FAST] Error processing host: {e}")
                     continue
             
             elapsed = round(time.time() - start_time, 1)
-            print(f"[FAST] ✓ Collected {len(hosts)} hosts from {self.hostname} in {elapsed}s")
+            logger.info(f"[FAST] ✓ Collected {len(hosts)} hosts from {self.hostname} in {elapsed}s")
             
         except Exception as e:
-            print(f"[FAST] ✗ Error collecting hosts: {e}")
+            logger.error(f"[FAST] ✗ Error collecting hosts: {e}")
         
         return hosts
     
@@ -496,7 +517,7 @@ class FastVCenterCollector:
         ]
         
         try:
-            print(f"[FAST] Collecting Datastores from {self.hostname}...")
+            logger.info(f"[FAST] Collecting Datastores from {self.hostname}...")
             props = self._retrieve_properties(vim.Datastore, ds_properties)
             
             for obj in props:
@@ -530,14 +551,14 @@ class FastVCenterCollector:
                     datastores.append(ds_data)
                     
                 except Exception as e:
-                    print(f"[FAST] Error processing datastore: {e}")
+                    logger.error(f"[FAST] Error processing datastore: {e}")
                     continue
             
             elapsed = round(time.time() - start_time, 1)
-            print(f"[FAST] ✓ Collected {len(datastores)} datastores from {self.hostname} in {elapsed}s")
+            logger.info(f"[FAST] ✓ Collected {len(datastores)} datastores from {self.hostname} in {elapsed}s")
             
         except Exception as e:
-            print(f"[FAST] ✗ Error collecting datastores: {e}")
+            logger.error(f"[FAST] ✗ Error collecting datastores: {e}")
         
         return datastores
     
@@ -549,7 +570,7 @@ class FastVCenterCollector:
         net_properties = ['name', 'summary.accessible', 'host', 'vm']
         
         try:
-            print(f"[FAST] Collecting Networks from {self.hostname}...")
+            logger.info(f"[FAST] Collecting Networks from {self.hostname}...")
             props = self._retrieve_properties(vim.Network, net_properties)
             
             for obj in props:
@@ -573,14 +594,14 @@ class FastVCenterCollector:
                     
                     networks.append(net_data)
                     
-                except Exception as e:
+                except Exception:
                     continue
             
             elapsed = round(time.time() - start_time, 1)
-            print(f"[FAST] ✓ Collected {len(networks)} networks from {self.hostname} in {elapsed}s")
+            logger.info(f"[FAST] ✓ Collected {len(networks)} networks from {self.hostname} in {elapsed}s")
             
         except Exception as e:
-            print(f"[FAST] ✗ Error collecting networks: {e}")
+            logger.error(f"[FAST] ✗ Error collecting networks: {e}")
         
         return networks
 
@@ -632,7 +653,7 @@ def collect_vcenter_data_parallel(credentials_list, max_workers=4):
                     'hostCount': str(len(local_data['hosts']))
                 }
             except Exception as e:
-                print(f"[PARALLEL] Error collecting from {hostname}: {e}")
+                logger.error(f"[PARALLEL] Error collecting from {hostname}: {e}")
                 local_data['vcenter'] = {
                     'hostname': hostname,
                     'name': hostname,
@@ -654,7 +675,7 @@ def collect_vcenter_data_parallel(credentials_list, max_workers=4):
         return local_data
     
     start_time = time.time()
-    print(f"\n[PARALLEL] Starting parallel collection from {len(credentials_list)} vCenters...")
+    logger.info(f"\n[PARALLEL] Starting parallel collection from {len(credentials_list)} vCenters...")
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(collect_from_vcenter, cred): cred for cred in credentials_list}
@@ -671,14 +692,14 @@ def collect_vcenter_data_parallel(credentials_list, max_workers=4):
                     if data['vcenter']:
                         all_vcenters.append(data['vcenter'])
             except Exception as e:
-                print(f"[PARALLEL] Exception from {cred['hostname']}: {e}")
+                logger.info(f"[PARALLEL] Exception from {cred['hostname']}: {e}")
     
     elapsed = round(time.time() - start_time, 1)
-    print(f"\n[PARALLEL] ✓ Collection complete in {elapsed}s")
-    print(f"  VMs: {len(all_vms)}")
-    print(f"  Hosts: {len(all_hosts)}")
-    print(f"  Datastores: {len(all_datastores)}")
-    print(f"  Networks: {len(all_networks)}")
+    logger.info(f"\n[PARALLEL] ✓ Collection complete in {elapsed}s")
+    logger.info(f"  VMs: {len(all_vms)}")
+    logger.info(f"  Hosts: {len(all_hosts)}")
+    logger.info(f"  Datastores: {len(all_datastores)}")
+    logger.info(f"  Networks: {len(all_networks)}")
     
     return {
         'vms': all_vms,

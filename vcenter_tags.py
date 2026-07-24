@@ -5,6 +5,7 @@ Supports both the v7.0+ /api/ path and the legacy /rest/ path.
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import suppress
 from typing import Any, Dict, List, Optional
 
@@ -13,6 +14,9 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger("vmware-dashboard.tags")
+
+# Opt-in SSL verification: set VM_SSL_CA_BUNDLE=/path/to/ca.pem to enable.
+SSL_CA_BUNDLE = os.environ.get("VM_SSL_CA_BUNDLE") or False
 
 _TIMEOUT_AUTH = 15
 _TIMEOUT_LIST = 15
@@ -32,7 +36,7 @@ def collect_vsphere_tags(hostname: str, username: str, password: str) -> Dict[st
     handle exceptions.
     """
     session = requests.Session()
-    session.verify = False
+    session.verify = SSL_CA_BUNDLE
 
     result = _try_v7(session, hostname, username, password)
     if result is None:

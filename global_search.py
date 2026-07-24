@@ -3,8 +3,7 @@
 Global Search Module - Search across all resources
 """
 
-from typing import Dict, List, Any
-from datetime import datetime
+from typing import Dict, List
 
 class GlobalSearch:
     def __init__(self, data_cache: Dict, cmdb):

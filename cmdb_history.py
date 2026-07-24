@@ -3,13 +3,16 @@
 CMDB History Manager v2 - Fixed reconnection handling
 """
 
-import os
 import json
+import logging
+import os
 import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
+
+logger = logging.getLogger(__name__)
 
 CACHE_DIR = os.path.expanduser("~/.vmware-dashboard-cache")
 CMDB_FILE = os.path.join(CACHE_DIR, "cmdb_history.json")
@@ -28,9 +31,9 @@ class HistoricalCMDB:
                     data = json.load(f)
                     self.records = data.get('records', {})
                     self.vcenter_status = data.get('vcenter_status', {})
-                print(f"[CMDB] Loaded {len(self.records)} records")
+                logger.info(f"[CMDB] Loaded {len(self.records)} records")
         except Exception as e:
-            print(f"[CMDB] Error loading: {e}")
+            logger.error(f"[CMDB] Error loading: {e}")
             self.records = {}
             self.vcenter_status = {}
     
@@ -44,7 +47,7 @@ class HistoricalCMDB:
                     'last_updated': datetime.now().isoformat()
                 }, f, indent=2, default=str)
         except Exception as e:
-            print(f"[CMDB] Error saving: {e}")
+            logger.error(f"[CMDB] Error saving: {e}")
     
     def update_vcenter_status(self, vcenter_name: str, connected: bool, error_message: str = None):
         now = datetime.now().isoformat()
@@ -112,7 +115,7 @@ class HistoricalCMDB:
         now = datetime.now().isoformat()
         disconnected_vcenters = disconnected_vcenters or []
         
-        print(f"[CMDB] Starting update: {len(current_vms)} VMs, {len(connected_vcenters)} connected vCenters")
+        logger.info(f"[CMDB] Starting update: {len(current_vms)} VMs, {len(connected_vcenters)} connected vCenters")
         
         # Update vCenter status
         for vc in connected_vcenters:
@@ -161,7 +164,7 @@ class HistoricalCMDB:
                 
                 # REACTIVATE: VM is back from unreachable/decommissioned
                 if old_status in ['unreachable', 'decommissioned']:
-                    print(f"[CMDB] REACTIVATING: {vm.get('vmName')} (was {old_status})")
+                    logger.info(f"[CMDB] REACTIVATING: {vm.get('vmName')} (was {old_status})")
                     existing['status'] = 'active'
                     existing['reactivatedDate'] = now
                     existing.pop('pingStatus', None)
@@ -207,7 +210,7 @@ class HistoricalCMDB:
             # If vCenter is connected but VM is gone -> decommissioned
             if vm_vcenter in connected_vcenters:
                 if current_status in ['active', 'unreachable']:
-                    print(f"[CMDB] DECOMMISSIONING: {record.get('vmName')} (vCenter {vm_vcenter} connected but VM gone)")
+                    logger.info(f"[CMDB] DECOMMISSIONING: {record.get('vmName')} (vCenter {vm_vcenter} connected but VM gone)")
                     record['status'] = 'decommissioned'
                     record['decommissionedDate'] = now
                     stats['decommissioned'] += 1
@@ -221,7 +224,7 @@ class HistoricalCMDB:
                     stats['unreachable'] += 1
         
         self.save()
-        print(f"[CMDB] Update complete: {stats}")
+        logger.info(f"[CMDB] Update complete: {stats}")
         return stats
     
     def _get_vm_key(self, vm: Dict) -> str:

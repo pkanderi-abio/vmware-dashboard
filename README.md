@@ -215,7 +215,7 @@ All configuration is via environment variables. See `.env.example` for the full 
 - vCenter credentials are stored only on the server filesystem (`~/.vmware-dashboard-cache/`), never in the database or source code
 - The `~/.vmware-dashboard-cache/` directory is outside the repository and never committed
 - CORS is restricted to origins listed in `VM_ALLOWED_ORIGINS`
-- SSL verification for PuppetDB is disabled by default (internal CA); enable by removing `verify=False` in `puppet_client.py` if your CA is trusted
+- SSL verification is disabled by default for both vCenter and PuppetDB (internal-CA environments). To enable, set `VM_SSL_CA_BUNDLE=/path/to/ca.pem` in `.env` — every session (vCenter pyVmomi, vSphere CIS REST, PuppetDB) will then verify against that bundle
 - Passwords are never returned by any API endpoint (`hasCredentials` boolean only)
 
 ---

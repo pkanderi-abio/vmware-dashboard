@@ -60,6 +60,19 @@ except ImportError:
 # ============================================
 CACHE_TTL_SECONDS = 1800
 CACHE_DIR = os.path.expanduser("~/.vmware-dashboard-cache")
+
+# Opt-in SSL verification: set VM_SSL_CA_BUNDLE=/path/to/ca.pem to enable
+# hostname/chain checks on vCenter connections. Unset → unverified (default,
+# for internal-CA envs).
+SSL_CA_BUNDLE = os.environ.get("VM_SSL_CA_BUNDLE") or None
+
+
+def _make_ssl_context() -> ssl.SSLContext:
+    if SSL_CA_BUNDLE:
+        return ssl.create_default_context(cafile=SSL_CA_BUNDLE)
+    return ssl._create_unverified_context()
+
+
 CREDENTIALS_FILE = os.path.join(CACHE_DIR, "vcenter_credentials.json")
 CACHE_FILE = os.path.join(CACHE_DIR, "cache.json")
 TRENDING_FILE = os.path.join(CACHE_DIR, "trending.json")
@@ -291,7 +304,7 @@ class VCenterPyVmomi:
         try:
             if self.si:
                 self.disconnect()
-            ctx = ssl._create_unverified_context()
+            ctx = _make_ssl_context()
             self.si = SmartConnect(
                 host=self.hostname,
                 user=self.username,
@@ -1045,7 +1058,8 @@ async def get_cmdb_vms(include_decommissioned: bool = True) -> Dict[str, Any]:
 async def get_cmdb_active() -> Dict[str, Any]:
     try:
         data = historical_cmdb.get_active()
-        for i, r in enumerate(data): r['ID'] = i + 1
+        for i, r in enumerate(data):
+            r['ID'] = i + 1
         return {"success": True, "data": data, "count": len(data)}
     except Exception as e:
         return {"success": False, "message": str(e)}
@@ -1055,7 +1069,8 @@ async def get_cmdb_active() -> Dict[str, Any]:
 async def get_cmdb_decommissioned() -> Dict[str, Any]:
     try:
         data = [r for r in historical_cmdb.records.values() if r.get('status') == 'decommissioned']
-        for i, r in enumerate(data): r['ID'] = i + 1
+        for i, r in enumerate(data):
+            r['ID'] = i + 1
         return {"success": True, "data": data, "count": len(data)}
     except Exception as e:
         return {"success": False, "message": str(e)}

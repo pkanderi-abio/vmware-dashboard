@@ -1,4 +1,4 @@
-# requirements.txt - Python dependencies
+# requirements.txt - Python runtime dependencies
 fastapi==0.109.0
 uvicorn==0.27.0
 requests==2.31.0
@@ -7,3 +7,7 @@ redis==5.0.1
 pydantic==2.5.3
 pydantic-settings==2.1.0
 urllib3==2.1.0
+# pyVmomi is required to actually collect from vCenter. The code guards its
+# import so the app boots without it (endpoints return empty data), but a real
+# deployment must have it installed.
+pyvmomi==8.0.2.0.1

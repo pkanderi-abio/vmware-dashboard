@@ -126,7 +126,7 @@ class VCenterHealthChecker:
             req.add_header('User-Agent', 'VMware-Dashboard/1.0')
             
             start_time = datetime.now()
-            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as response:
+            with urllib.request.urlopen(req, timeout=timeout, context=ctx):
                 response_time = (datetime.now() - start_time).total_seconds() * 1000
                 return {
                     'status': 'ok',

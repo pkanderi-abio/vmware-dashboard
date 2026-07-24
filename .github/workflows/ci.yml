@@ -1,4 +1,4 @@
-﻿name: CI — Type Check & Build
+name: CI — Type Check, Lint & Test
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   frontend-ci:
-    name: Frontend — Type Check & Build
+    name: Frontend — Type Check, Lint & Build
     runs-on: self-hosted
     timeout-minutes: 10
 
@@ -22,7 +22,10 @@ jobs:
         run: cd "$DEPLOY_DIR" && npm ci --silent
 
       - name: TypeScript type-check
-        run: cd "$DEPLOY_DIR" && npx tsc --noEmit
+        run: cd "$DEPLOY_DIR" && npm run typecheck
+
+      - name: ESLint
+        run: cd "$DEPLOY_DIR" && npm run lint
 
       - name: Build frontend
         run: cd "$DEPLOY_DIR" && npm run build
@@ -30,16 +33,34 @@ jobs:
           API_URL: http://localhost:8000
 
   backend-ci:
-    name: Backend — Syntax & Import Check
+    name: Backend — Lint, Syntax & Tests
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     env:
       DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/opt/vmware-dashboard' }}
 
     steps:
+      - name: Install dev deps
+        run: |
+          cd "$DEPLOY_DIR"
+          source venv/bin/activate
+          pip install -q -r requirements-dev.txt
+
+      - name: Ruff lint
+        run: |
+          cd "$DEPLOY_DIR"
+          source venv/bin/activate
+          ruff check .
+
       - name: Syntax check all Python files
         run: |
           cd "$DEPLOY_DIR"
           source venv/bin/activate
-          python -m compileall -q main.py vcenter_fast.py vcenter_health.py cmdb_history.py puppet_client.py global_search.py
+          python -m compileall -q main.py vcenter_fast.py vcenter_health.py cmdb_history.py puppet_client.py global_search.py vcenter_tags.py
+
+      - name: pytest
+        run: |
+          cd "$DEPLOY_DIR"
+          source venv/bin/activate
+          pytest
