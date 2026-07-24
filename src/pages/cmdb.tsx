@@ -337,7 +337,7 @@ export default function CMDBPage() {
         r.vmName?.toLowerCase().includes(s) ||
         r.ipAddress?.toLowerCase().includes(s) ||
         r.cluster?.toLowerCase().includes(s) ||
-        r.vcenterName?.toLowerCase().includes(s) ||
+        r.vcenterName?.toLowerCase().includes(s)
       );
     }
 

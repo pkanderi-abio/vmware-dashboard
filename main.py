@@ -297,9 +297,11 @@ class VCenterPyVmomi:
         self.si = None
         self.content = None
         self.last_connect = 0.0
+        self.last_error: str = ""
 
     def connect(self) -> bool:
         if not PYVMOMI_AVAILABLE:
+            self.last_error = "pyVmomi is not installed on the server"
             return False
         try:
             if self.si:
@@ -313,11 +315,13 @@ class VCenterPyVmomi:
             )
             self.content = self.si.RetrieveContent()
             self.last_connect = time.time()
+            self.last_error = ""
             return True
-        except Exception:
+        except Exception as exc:
             logger.exception("Failed to connect to %s", self.hostname)
             self.si = None
             self.content = None
+            self.last_error = str(exc) or exc.__class__.__name__
             return False
 
     def reconnect(self) -> bool:
@@ -784,7 +788,27 @@ async def get_vcenter_connections() -> Dict[str, Any]:
 async def connect_vcenter(config: VCenterConfig, bg: BackgroundTasks) -> Dict[str, Any]:
     client = VCenterPyVmomi(config.hostname, config.username, config.password)
     if not client.connect():
-        raise HTTPException(status_code=401, detail="Failed to connect")
+        err = client.last_error or "Failed to connect"
+        lower = err.lower()
+        # Classify so the UI can tell "cert rejected" from "wrong password".
+        if "certificate verify failed" in lower or "ssl" in lower:
+            status = 502
+            hint = (
+                f"TLS verification failed: {err}. "
+                "vCenter uses a self-signed cert by default — either leave "
+                "VM_SSL_CA_BUNDLE unset (accept any cert) or point it at the "
+                "PEM your vCenter presents."
+            )
+        elif "pyvmomi" in lower:
+            status = 500
+            hint = err
+        elif "cannot complete login" in lower or "invalid" in lower or "incorrect" in lower:
+            status = 401
+            hint = f"Authentication rejected by vCenter: {err}"
+        else:
+            status = 502
+            hint = f"Failed to connect to {config.hostname}: {err}"
+        raise HTTPException(status_code=status, detail=hint)
 
     pyvmomi_sessions[config.hostname] = client
     save_credentials(
@@ -813,7 +837,10 @@ async def test_vcenter(config: VCenterConfig) -> Dict[str, Any]:
     ok = client.connect()
     with suppress(Exception):
         client.disconnect()
-    return {"success": ok, "message": "Connection successful" if ok else "Connection failed"}
+    return {
+        "success": ok,
+        "message": "Connection successful" if ok else (client.last_error or "Connection failed"),
+    }
 
 
 @app.post("/api/vcenters/connections")
