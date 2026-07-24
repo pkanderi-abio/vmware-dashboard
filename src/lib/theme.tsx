@@ -19,7 +19,13 @@ const ThemeContext = createContext<ThemeContextType>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     try {
-      return (localStorage.getItem('cie-theme') as Theme) || 'light';
+      // One-shot migration from the pre-rename key so users keep their choice.
+      const legacy = localStorage.getItem('cie-theme');
+      if (legacy && !localStorage.getItem('virtualization-theme')) {
+        localStorage.setItem('virtualization-theme', legacy);
+        localStorage.removeItem('cie-theme');
+      }
+      return (localStorage.getItem('virtualization-theme') as Theme) || 'light';
     } catch {
       return 'light';
     }
@@ -33,7 +39,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove('dark');
     }
     try {
-      localStorage.setItem('cie-theme', theme);
+      localStorage.setItem('virtualization-theme', theme);
     } catch {}
   }, [theme]);
 

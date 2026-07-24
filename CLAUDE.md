@@ -49,7 +49,7 @@ Two-process app: a Python FastAPI backend that talks to vCenter over pyVmomi, an
 - Router set up in [src/App.tsx](src/App.tsx). One file per route under [src/pages/](src/pages/) — the file name is the URL (`vms.tsx → /vms`, `_layout.tsx` is the shell).
 - All backend calls go through the single `api` singleton in [src/lib/api.ts](src/lib/api.ts). Do **not** hand-roll `fetch('/api/...')` in components.
 - **API base URL is runtime-switchable.** [src/config/api.ts](src/config/api.ts) reads `localStorage['vm-api-origin']`; when empty, requests go to relative `/api/...` and Vite's dev-server proxy forwards them to `API_URL` (default `http://localhost:8000`) — see [vite.config.ts](vite.config.ts). The Settings page lets a user point the SPA at a different backend without a rebuild.
-- Theme, thresholds, and API origin are all persisted in `localStorage` under distinct keys (`cie-theme`, `vm-dashboard-thresholds`, `vm-api-origin`). No cookie/session state.
+- Theme, thresholds, and API origin are all persisted in `localStorage` under distinct keys (`virtualization-theme`, `vm-dashboard-thresholds`, `vm-api-origin`). No cookie/session state. The theme key was renamed from `cie-theme` — `theme.tsx` migrates the old value on first load.
 - Alert threshold defaults live in [src/lib/thresholds.ts](src/lib/thresholds.ts); the Settings page overrides them client-side.
 - UI kit is shadcn/ui — components are copied into [src/components/ui/](src/components/ui/) rather than pulled from a package. Prefer editing what's there over adding new primitives.
 

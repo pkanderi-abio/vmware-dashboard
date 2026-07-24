@@ -21,7 +21,7 @@
 
         ### v2.4 — 2026-04-25
         **CI/CD auto-deploy pipeline**
-        - `.github/workflows/deploy.yml`: Self-hosted runner (`cie-server`) — git pull, pip install, npm build, systemctl restart, health-check retry loop
+        - `.github/workflows/deploy.yml`: Self-hosted runner (`virtualization-server`) — git pull, pip install, npm build, systemctl restart, health-check retry loop
         - `.github/workflows/ci.yml`: PR validation — tsc + build check
         - `docs/DEPLOY_NEW_SERVER.md`: Full guide for CI/CD setup on a new server
         - `/etc/sudoers.d/z-vm-deploy`: NOPASSWD systemctl rules (z- prefix overrides uadmins group)
