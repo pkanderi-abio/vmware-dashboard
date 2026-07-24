@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
+import { VMActions } from '@/components/vm-actions';
 
 export default function VMDetailPage() {
   const { vmName } = useParams();
@@ -124,9 +125,12 @@ export default function VMDetailPage() {
             </div>
           </div>
         </div>
-        <Button onClick={loadVM} variant="outline">
-          <RefreshCw className="w-4 h-4 mr-2" />Refresh
-        </Button>
+        <div className="flex items-start gap-2">
+          <VMActions vm={{ vmId: vm.vmId || vm.uuid || vm.vmName, vmName: vm.vmName, powerState: vm.powerState }} onDone={loadVM} />
+          <Button onClick={loadVM} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}

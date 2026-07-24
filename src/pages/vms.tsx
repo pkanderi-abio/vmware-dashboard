@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
 import { api } from '@/lib/api';
+import { VMActions } from '@/components/vm-actions';
 
 const HIGH_CPU_THRESHOLD = 80;
 const HIGH_MEM_THRESHOLD = 80;
@@ -243,7 +244,7 @@ export default function VMsPage() {
       }
       if (tagRes?.success && tagRes.data) {
         setTagMap(tagRes.data.vm_tags || {});
-        setAllTagNames(tagRes.tag_names || []);
+        setAllTagNames((tagRes as any).tag_names || tagRes.data.tag_names || []);
       }
     } catch {}
     setLoading(false);
@@ -554,6 +555,7 @@ export default function VMsPage() {
                     <span className="flex items-center justify-center gap-1">Mem% <ArrowUpDown className="w-3 h-3" /></span>
                   </th>
                   <th className="w-28 p-2 font-semibold text-left whitespace-nowrap">IP Address</th>
+                  <th className="w-16 p-2 font-semibold text-center whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -627,11 +629,18 @@ export default function VMsPage() {
                           </span>
                         </td>
                         <td className="p-2 font-mono text-[11px]">{vm.ipAddress || '-'}</td>
+                        <td className="p-2 text-center" onClick={(e) => e.stopPropagation()}>
+                          <VMActions
+                            vm={{ vmId: vm.vmId, vmName: vm.vmName, powerState: vm.powerState }}
+                            onDone={loadData}
+                            compact
+                          />
+                        </td>
                       </tr>
 
                       {isExpanded && (
                         <tr className="bg-muted/50">
-                          <td colSpan={11} className="p-3">
+                          <td colSpan={12} className="p-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                               
                               {/* Location */}

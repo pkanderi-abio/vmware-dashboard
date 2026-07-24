@@ -50,13 +50,22 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        let body = '';
+        // FastAPI HTTPException bodies are {"detail": "..."} — pull that out
+        // so the message shown to the user is the actionable string, not the
+        // whole JSON blob.
+        let detail = '';
         try {
-          body = await response.text();
-        } catch {
-          body = '';
-        }
-        throw new Error(`HTTP ${response.status} ${response.statusText}${body ? ` - ${body}` : ''}`);
+          const raw = await response.text();
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              detail = typeof parsed?.detail === 'string' ? parsed.detail : raw;
+            } catch {
+              detail = raw;
+            }
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail || `HTTP ${response.status} ${response.statusText}`);
       }
 
       const payload = await response.json();
@@ -70,7 +79,7 @@ class ApiClient {
       return { success: true, data: payload as T };
     } catch (error) {
       console.error(`API Error (${endpoint}):`, error);
-      return { success: false, message: String(error) };
+      return { success: false, message: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -296,6 +305,107 @@ class ApiClient {
     const preferred = await this.request<any>(`/cmdb/vm-history/${encoded}`);
     if (preferred.success) return preferred;
     return this.request<any>(`/cmdb/vm/${encoded}`);
+  }
+
+  // ============================================
+  // VM Lifecycle
+  // ============================================
+
+  /**
+   * Actions considered destructive on the backend — these require a
+   * confirmation token obtained via issueConfirmToken() first, then replayed
+   * as X-Confirm-Token on the mutating request. Keep in sync with
+   * action_guard.DESTRUCTIVE_ACTIONS on the server.
+   */
+  static readonly DESTRUCTIVE_ACTIONS = new Set([
+    'power_off', 'reset', 'snapshot_revert', 'snapshot_delete', 'modify', 'delete',
+  ]);
+
+  async issueConfirmToken(action: string, target: string): Promise<ApiResponse<{ token: string; expires_in: number }>> {
+    return this.request('/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ action, target }),
+    });
+  }
+
+  private tokenHeader(token?: string): HeadersInit {
+    return token ? { 'X-Confirm-Token': token } : {};
+  }
+
+  async vmPowerOn(vmId: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/power/on`, { method: 'POST' });
+  }
+  async vmPowerOff(vmId: string, token: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/power/off`, {
+      method: 'POST', headers: this.tokenHeader(token),
+    });
+  }
+  async vmReset(vmId: string, token: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/power/reset`, {
+      method: 'POST', headers: this.tokenHeader(token),
+    });
+  }
+  async vmSuspend(vmId: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/power/suspend`, { method: 'POST' });
+  }
+  async vmGuestShutdown(vmId: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/guest/shutdown`, { method: 'POST' });
+  }
+  async vmGuestReboot(vmId: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/guest/reboot`, { method: 'POST' });
+  }
+
+  async vmSnapshotCreate(
+    vmId: string,
+    body: { name: string; description?: string; memory?: boolean; quiesce?: boolean },
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/snapshot`, {
+      method: 'POST', body: JSON.stringify(body),
+    });
+  }
+  async vmSnapshotRevert(vmId: string, snapshotId: string, token: string): Promise<ApiResponse<any>> {
+    return this.request(
+      `/vm/${encodeURIComponent(vmId)}/snapshot/${encodeURIComponent(snapshotId)}/revert`,
+      { method: 'POST', headers: this.tokenHeader(token) },
+    );
+  }
+  async vmSnapshotDelete(
+    vmId: string, snapshotId: string, token: string, removeChildren = false,
+  ): Promise<ApiResponse<any>> {
+    return this.request(
+      `/vm/${encodeURIComponent(vmId)}/snapshot/${encodeURIComponent(snapshotId)}?remove_children=${removeChildren}`,
+      { method: 'DELETE', headers: this.tokenHeader(token) },
+    );
+  }
+
+  async vmModify(
+    vmId: string,
+    body: { num_cpu?: number; memory_mb?: number },
+    token: string,
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}/modify`, {
+      method: 'POST', headers: this.tokenHeader(token), body: JSON.stringify(body),
+    });
+  }
+
+  async vmDelete(vmId: string, token: string): Promise<ApiResponse<any>> {
+    return this.request(`/vm/${encodeURIComponent(vmId)}`, {
+      method: 'DELETE', headers: this.tokenHeader(token),
+    });
+  }
+
+  async getTemplates(): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>('/templates');
+  }
+  async vmClone(body: {
+    template_id: string; target_name: string;
+    datastore_id?: string; host_id?: string; power_on?: boolean;
+  }): Promise<ApiResponse<any>> {
+    return this.request('/vm/clone', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  async getAudit(limit = 100): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>(`/audit?limit=${limit}`);
   }
 }
 

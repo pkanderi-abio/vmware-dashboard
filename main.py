@@ -19,16 +19,20 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import urllib3
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from starlette.middleware import Middleware
 
+import action_guard
+import vcenter_lifecycle
+from action_guard import TokenError
 from cmdb_history import historical_cmdb
+from global_search import GlobalSearch
+from puppet_client import puppet_client
 from vcenter_fast import collect_vcenter_data_parallel
 from vcenter_health import vcenter_health as vc_health_checker
-from puppet_client import puppet_client
-from global_search import GlobalSearch
+from vcenter_lifecycle import LifecycleError
 from vcenter_tags import collect_vsphere_tags
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -284,6 +288,31 @@ class VCenterConfig(BaseModel):
 
 class VCenterConnectionsRequest(BaseModel):
     connections: List[Dict[str, Any]]
+
+
+class ConfirmRequest(BaseModel):
+    action: str
+    target: str
+
+
+class SnapshotCreateRequest(BaseModel):
+    name: str
+    description: str = ""
+    memory: bool = False
+    quiesce: bool = True
+
+
+class ModifyRequest(BaseModel):
+    num_cpu: Optional[int] = None
+    memory_mb: Optional[int] = None
+
+
+class CloneRequest(BaseModel):
+    template_id: str
+    target_name: str
+    datastore_id: Optional[str] = None
+    host_id: Optional[str] = None
+    power_on: bool = False
 
 
 # ============================================
@@ -1316,6 +1345,298 @@ async def global_search(q: str = "", limit: int = 20) -> Dict[str, Any]:
         return {"success": True, "data": results}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+# ============================================
+# VM LIFECYCLE
+# ============================================
+
+def _client_and_vm(vm_id: str) -> tuple["VCenterPyVmomi", str, str]:
+    """Resolve `vm_id` to (session, vm_name, vcenter_hostname).
+
+    Uses the cached VM list so we don't have to scan every vCenter — the
+    cache row already tells us which vCenter owns this VM. The name is
+    needed for the confirmation-token check (which requires the user to
+    have typed the exact name) and the audit log.
+    """
+    for vm in data_cache.get("vms", ignore_ttl=True) or []:
+        if str(vm.get("vmId", "")) == vm_id:
+            vcenter = str(vm.get("vcenterName", ""))
+            client = pyvmomi_sessions.get(vcenter)
+            if client is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"vCenter {vcenter} has no active session; reconnect it first",
+                )
+            return client, str(vm.get("vmName", "")), vcenter
+    raise HTTPException(status_code=404, detail=f"VM {vm_id} not found in cache")
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _run_lifecycle(
+    request: Request,
+    *,
+    action: str,
+    vm_id: Optional[str],
+    token: Optional[str],
+    op,
+) -> Dict[str, Any]:
+    """Uniform dispatch: token-check → run → audit → shape response."""
+    if vm_id is not None:
+        client, vm_name, vcenter = _client_and_vm(vm_id)
+        target = vm_name
+    else:
+        # Clone has no source VM — the target is the *new* VM name, which is
+        # embedded in the op's closure.
+        client, vm_name, vcenter, target = None, "", "", "*"
+
+    try:
+        action_guard.validate_token(token, action=action, target=target)
+    except TokenError as e:
+        action_guard.audit(
+            action=action, target=target, vcenter=vcenter,
+            client_ip=_client_ip(request), outcome="token_rejected",
+            detail=str(e),
+        )
+        raise HTTPException(status_code=403, detail=str(e)) from None
+
+    try:
+        result = op(client) if client is not None else op()
+    except LifecycleError as e:
+        action_guard.audit(
+            action=action, target=target, vcenter=vcenter,
+            client_ip=_client_ip(request), outcome="failed", detail=str(e),
+        )
+        raise HTTPException(status_code=502, detail=str(e)) from None
+    except Exception as e:
+        logger.exception("Unexpected lifecycle error on %s %s", action, target)
+        action_guard.audit(
+            action=action, target=target, vcenter=vcenter,
+            client_ip=_client_ip(request), outcome="crashed", detail=repr(e),
+        )
+        raise HTTPException(status_code=500, detail=repr(e)) from None
+
+    action_guard.audit(
+        action=action, target=target, vcenter=vcenter,
+        client_ip=_client_ip(request), outcome="ok", detail="",
+    )
+    # Data may have changed — invalidate cache so next fetch pulls fresh.
+    data_cache.set("vms", data_cache.get("vms", ignore_ttl=True) or [])
+    return {"success": True, "data": result}
+
+
+@app.post("/api/confirm")
+async def issue_confirm_token(req: ConfirmRequest) -> Dict[str, Any]:
+    """Mint a short-lived token authorizing one destructive op on one target."""
+    try:
+        return {"success": True, "data": action_guard.issue_token(req.action, req.target)}
+    except TokenError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@app.get("/api/audit")
+async def get_audit(limit: int = 500) -> Dict[str, Any]:
+    """Recent audit entries, newest first."""
+    return {"success": True, "data": action_guard.read_audit(limit=limit)}
+
+
+# ─── Power ops ──────────────────────────────────────────────────────────────
+
+@app.post("/api/vm/{vm_id}/power/on")
+async def vm_power_on(vm_id: str, request: Request) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="power_on", vm_id=vm_id, token=None,
+        op=lambda c: vcenter_lifecycle.power_on(c, vm_id),
+    )
+
+
+@app.post("/api/vm/{vm_id}/power/off")
+async def vm_power_off(
+    vm_id: str, request: Request,
+    x_confirm_token: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="power_off", vm_id=vm_id, token=x_confirm_token,
+        op=lambda c: vcenter_lifecycle.power_off(c, vm_id),
+    )
+
+
+@app.post("/api/vm/{vm_id}/power/reset")
+async def vm_reset(
+    vm_id: str, request: Request,
+    x_confirm_token: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="reset", vm_id=vm_id, token=x_confirm_token,
+        op=lambda c: vcenter_lifecycle.reset(c, vm_id),
+    )
+
+
+@app.post("/api/vm/{vm_id}/power/suspend")
+async def vm_suspend(vm_id: str, request: Request) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="suspend", vm_id=vm_id, token=None,
+        op=lambda c: vcenter_lifecycle.suspend(c, vm_id),
+    )
+
+
+@app.post("/api/vm/{vm_id}/guest/shutdown")
+async def vm_guest_shutdown(vm_id: str, request: Request) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="guest_shutdown", vm_id=vm_id, token=None,
+        op=lambda c: vcenter_lifecycle.guest_shutdown(c, vm_id),
+    )
+
+
+@app.post("/api/vm/{vm_id}/guest/reboot")
+async def vm_guest_reboot(vm_id: str, request: Request) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="guest_reboot", vm_id=vm_id, token=None,
+        op=lambda c: vcenter_lifecycle.guest_reboot(c, vm_id),
+    )
+
+
+# ─── Snapshot ops ───────────────────────────────────────────────────────────
+
+@app.post("/api/vm/{vm_id}/snapshot")
+async def vm_snapshot_create(
+    vm_id: str, req: SnapshotCreateRequest, request: Request,
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="snapshot_create", vm_id=vm_id, token=None,
+        op=lambda c: vcenter_lifecycle.snapshot_create(
+            c, vm_id,
+            name=req.name, description=req.description,
+            memory=req.memory, quiesce=req.quiesce,
+        ),
+    )
+
+
+@app.post("/api/vm/{vm_id}/snapshot/{snapshot_id}/revert")
+async def vm_snapshot_revert(
+    vm_id: str, snapshot_id: str, request: Request,
+    x_confirm_token: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="snapshot_revert", vm_id=vm_id, token=x_confirm_token,
+        op=lambda c: vcenter_lifecycle.snapshot_revert(c, vm_id, snapshot_id=snapshot_id),
+    )
+
+
+@app.delete("/api/vm/{vm_id}/snapshot/{snapshot_id}")
+async def vm_snapshot_delete(
+    vm_id: str, snapshot_id: str, request: Request,
+    remove_children: bool = False,
+    x_confirm_token: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="snapshot_delete", vm_id=vm_id, token=x_confirm_token,
+        op=lambda c: vcenter_lifecycle.snapshot_delete(
+            c, vm_id, snapshot_id=snapshot_id, remove_children=remove_children,
+        ),
+    )
+
+
+# ─── Modify (CPU / memory) ──────────────────────────────────────────────────
+
+@app.post("/api/vm/{vm_id}/modify")
+async def vm_modify(
+    vm_id: str, req: ModifyRequest, request: Request,
+    x_confirm_token: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="modify", vm_id=vm_id, token=x_confirm_token,
+        op=lambda c: vcenter_lifecycle.modify(
+            c, vm_id, num_cpu=req.num_cpu, memory_mb=req.memory_mb,
+        ),
+    )
+
+
+# ─── Delete ─────────────────────────────────────────────────────────────────
+
+@app.delete("/api/vm/{vm_id}")
+async def vm_delete(
+    vm_id: str, request: Request,
+    x_confirm_token: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    return _run_lifecycle(
+        request, action="delete", vm_id=vm_id, token=x_confirm_token,
+        op=lambda c: vcenter_lifecycle.delete(c, vm_id),
+    )
+
+
+# ─── Templates + clone ──────────────────────────────────────────────────────
+
+@app.get("/api/templates")
+async def get_templates() -> Dict[str, Any]:
+    """Every VM marked as a template across all connected vCenters."""
+    out: List[Dict[str, Any]] = []
+    for vc, client in list(pyvmomi_sessions.items()):
+        try:
+            out.extend(vcenter_lifecycle.list_templates(client))
+        except LifecycleError as e:
+            logger.warning("Template listing failed on %s: %s", vc, e)
+    return {"success": True, "data": out, "count": len(out)}
+
+
+@app.post("/api/vm/clone")
+async def vm_clone(req: CloneRequest, request: Request) -> Dict[str, Any]:
+    """Clone from a template. Non-destructive to source → no token required."""
+    # Locate the vCenter that owns the template.
+    templates = data_cache.get("vms", ignore_ttl=True) or []
+    vcenter = ""
+    for t in templates:
+        if str(t.get("vmId", "")) == req.template_id:
+            vcenter = str(t.get("vcenterName", ""))
+            break
+    if not vcenter:
+        # Template may not be in the VM cache; fall back to scanning sessions.
+        for vc, client in list(pyvmomi_sessions.items()):
+            try:
+                for t in vcenter_lifecycle.list_templates(client):
+                    if t["templateId"] == req.template_id:
+                        vcenter = vc
+                        break
+                if vcenter:
+                    break
+            except LifecycleError:
+                continue
+    if not vcenter:
+        raise HTTPException(status_code=404, detail=f"Template {req.template_id} not found")
+
+    client = pyvmomi_sessions.get(vcenter)
+    if client is None:
+        raise HTTPException(status_code=503, detail=f"vCenter {vcenter} has no active session")
+
+    def _op():
+        return vcenter_lifecycle.clone_from_template(
+            client,
+            template_id=req.template_id,
+            target_name=req.target_name,
+            datastore_id=req.datastore_id,
+            host_id=req.host_id,
+            power_on=req.power_on,
+        )
+
+    try:
+        result = _op()
+    except LifecycleError as e:
+        action_guard.audit(
+            action="clone_from_template", target=req.target_name, vcenter=vcenter,
+            client_ip=_client_ip(request), outcome="failed", detail=str(e),
+        )
+        raise HTTPException(status_code=502, detail=str(e)) from None
+    action_guard.audit(
+        action="clone_from_template", target=req.target_name, vcenter=vcenter,
+        client_ip=_client_ip(request), outcome="ok", detail=f"from template {req.template_id}",
+    )
+    return {"success": True, "data": result}
 
 
 if __name__ == "__main__":

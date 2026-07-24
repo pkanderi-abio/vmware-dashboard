@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
+import { SnapshotRowActions } from '@/components/snapshot-actions';
 
 const OLD_SNAPSHOT_DAYS = 7;
 const WARN_SNAPSHOT_DAYS = 3;
@@ -385,6 +386,12 @@ export default function SnapshotsPage() {
                                   <p className="text-muted-foreground">{snap.description}</p>
                                 </div>
                               )}
+
+                              {/* Actions */}
+                              <div className="bg-background p-2.5 rounded border md:col-span-3">
+                                <h4 className="font-semibold mb-2 text-xs text-red-600">Actions</h4>
+                                <SnapshotRowActions snap={snap} onDone={loadData} />
+                              </div>
 
                             </div>
                           </td>
