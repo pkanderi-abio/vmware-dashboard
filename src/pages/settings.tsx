@@ -45,7 +45,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, shortHost } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
 import { getApiOrigin, setApiOrigin, getApiBase } from '@/config/api';
 import { getThresholds, saveThresholds, DEFAULT_THRESHOLDS, type Thresholds } from '@/lib/thresholds';
@@ -691,7 +691,7 @@ export default function SettingsPage() {
                     className="text-warning border-warning/50 hover:bg-warning/10"
                   >
                     <PlugZap className="w-4 h-4 mr-2" />
-                    {c.hostname.split('.')[0]}
+                    {shortHost(c.hostname)}
                   </Button>
                 ))}
             </div>
@@ -954,7 +954,7 @@ export default function SettingsPage() {
                     {fullHealth.vcenters_list.map((vc: string) => (
                       <Badge key={vc} variant="outline" className="text-xs bg-success/5 border-success/30 text-success">
                         <Wifi className="w-2.5 h-2.5 mr-1" />
-                        {vc.split('.')[0]}
+                        {shortHost(vc)}
                       </Badge>
                     ))}
                   </div>

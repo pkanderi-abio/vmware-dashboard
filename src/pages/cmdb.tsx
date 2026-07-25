@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, shortHost } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
 
@@ -539,7 +539,7 @@ export default function CMDBPage() {
           <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="All vCenters" /></SelectTrigger>
           <SelectContent align="end">
             <SelectItem value="all">All vCenters</SelectItem>
-            {vCenters.map(vc => <SelectItem key={vc} value={vc}>{vc?.split('.')[0]}</SelectItem>)}
+            {vCenters.map(vc => <SelectItem key={vc} value={vc}>{shortHost(vc)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -655,10 +655,10 @@ export default function CMDBPage() {
                                   <Globe className="w-3.5 h-3.5" />Location
                                 </h4>
                                 <div className="space-y-1">
-                                  <div className="flex justify-between"><span className="text-muted-foreground">vCenter:</span><span className="font-medium">{r.vcenterName?.split('.')[0]}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">vCenter:</span><span className="font-medium">{shortHost(r.vcenterName)}</span></div>
                                   <div className="flex justify-between"><span className="text-muted-foreground">Datacenter:</span><span className="font-medium">{r.datacenter || '-'}</span></div>
                                   <div className="flex justify-between"><span className="text-muted-foreground">Cluster:</span><span className="font-medium">{r.cluster || '-'}</span></div>
-                                  <div className="flex justify-between"><span className="text-muted-foreground">Host:</span><span className="font-medium">{r.hostName?.split('.')[0] || '-'}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">Host:</span><span className="font-medium">{shortHost(r.hostName) || '-'}</span></div>
                                 </div>
                               </div>
 

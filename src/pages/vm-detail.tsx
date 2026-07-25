@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, shortHost } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
 import { VMActions } from '@/components/vm-actions';
@@ -202,7 +202,7 @@ export default function VMDetailPage() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-muted-foreground">vCenter</span>
-                  <span className="font-medium">{vm.vcenterName?.split('.')[0]}</span>
+                  <span className="font-medium">{shortHost(vm.vcenterName)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-muted-foreground">Datacenter</span>
@@ -214,7 +214,7 @@ export default function VMDetailPage() {
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-muted-foreground">Host</span>
-                  <span className="font-medium">{vm.hostName?.split('.')[0] || '-'}</span>
+                  <span className="font-medium">{shortHost(vm.hostName) || '-'}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-muted-foreground">Folder</span>

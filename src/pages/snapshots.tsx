@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, shortHost } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
 import { SnapshotRowActions } from '@/components/snapshot-actions';
@@ -267,7 +267,7 @@ export default function SnapshotsPage() {
           <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="All vCenters" /></SelectTrigger>
           <SelectContent align="end">
             <SelectItem value="all">All vCenters</SelectItem>
-            {vCenters.map(vc => <SelectItem key={vc} value={vc || ''}>{vc?.split('.')[0]}</SelectItem>)}
+            {vCenters.map(vc => <SelectItem key={vc} value={vc || ''}>{shortHost(vc)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -327,7 +327,7 @@ export default function SnapshotsPage() {
                             : <span className="text-gray-400">-</span>
                           }
                         </td>
-                        <td className="p-2 truncate max-w-[120px]" title={snap.vcenterName}>{snap.vcenterName?.split('.')[0]}</td>
+                        <td className="p-2 truncate max-w-[120px]" title={snap.vcenterName}>{shortHost(snap.vcenterName)}</td>
                       </tr>
 
                       {isExpanded && (
@@ -357,7 +357,7 @@ export default function SnapshotsPage() {
                                   <div className="flex justify-between"><span className="text-muted-foreground">VM Name:</span><span className="font-medium">{snap.vmName}</span></div>
                                   <div className="flex justify-between"><span className="text-muted-foreground">VM ID:</span><span className="font-medium">{snap.vmId}</span></div>
                                   <div className="flex justify-between items-center"><span className="text-muted-foreground">Power:</span>{getPowerBadge(snap)}</div>
-                                  <div className="flex justify-between"><span className="text-muted-foreground">vCenter:</span><span className="font-medium">{snap.vcenterName?.split('.')[0]}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">vCenter:</span><span className="font-medium">{shortHost(snap.vcenterName)}</span></div>
                                 </div>
                               </div>
 

@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, shortHost } from '@/lib/utils';
 
 import { API_BASE } from '@/config/api';
 
@@ -221,7 +221,7 @@ export default function NetworksPage() {
           <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="All vCenters" /></SelectTrigger>
           <SelectContent align="end">
             <SelectItem value="all">All vCenters</SelectItem>
-            {vCenters.map(vc => <SelectItem key={vc} value={vc || ''}>{vc?.split('.')[0]}</SelectItem>)}
+            {vCenters.map(vc => <SelectItem key={vc} value={vc || ''}>{shortHost(vc)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={setFilterType}>
@@ -278,7 +278,7 @@ export default function NetworksPage() {
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100">{net.type || '-'}</span>
                         </td>
                         <td className="p-2 text-center">{getAccessibleBadge(net)}</td>
-                        <td className="p-2 truncate max-w-[150px]" title={net.vcenterName}>{net.vcenterName?.split('.')[0]}</td>
+                        <td className="p-2 truncate max-w-[150px]" title={net.vcenterName}>{shortHost(net.vcenterName)}</td>
                         <td className="p-2 text-center">{net.vmCount || 0}</td>
                         <td className="p-2 text-center">{net.hostCount || 0}</td>
                       </tr>

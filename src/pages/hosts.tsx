@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, shortHost } from '@/lib/utils';
 
 import { getApiBase } from '@/config/api';
 import { getThresholds } from '@/lib/thresholds';
@@ -325,7 +325,7 @@ export default function HostsPage() {
           <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="All vCenters" /></SelectTrigger>
           <SelectContent align="end">
             <SelectItem value="all">All vCenters</SelectItem>
-            {vCenters.map(vc => <SelectItem key={vc} value={vc || ''}>{vc?.split('.')[0]}</SelectItem>)}
+            {vCenters.map(vc => <SelectItem key={vc} value={vc || ''}>{shortHost(vc)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterCluster} onValueChange={setFilterCluster}>
@@ -389,7 +389,7 @@ export default function HostsPage() {
                         <td className="p-2 text-center">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                         </td>
-                        <td className="p-2 font-medium truncate max-w-[200px]" title={host.hostName}>{host.hostName?.split('.')[0]}</td>
+                        <td className="p-2 font-medium truncate max-w-[200px]" title={host.hostName}>{shortHost(host.hostName)}</td>
                         <td className="p-2 text-center">{getStatusBadge(host)}</td>
                         <td className="p-2 truncate max-w-[150px]" title={(host.clusterName || host.cluster)}>{(host.clusterName || host.cluster || '-')}</td>
                         <td className="p-2 text-center">{host.cpuCores || '-'}</td>
@@ -431,7 +431,7 @@ export default function HostsPage() {
                                   <Globe className="w-3.5 h-3.5" />Location
                                 </h4>
                                 <div className="space-y-1">
-                                  <div className="flex justify-between"><span className="text-muted-foreground">vCenter:</span><span className="font-medium">{host.vcenterName?.split('.')[0]}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">vCenter:</span><span className="font-medium">{shortHost(host.vcenterName)}</span></div>
                                   <div className="flex justify-between"><span className="text-muted-foreground">Datacenter:</span><span className="font-medium">{(host.datacenterName || host.datacenter || '-')}</span></div>
                                   <div className="flex justify-between"><span className="text-muted-foreground">Cluster:</span><span className="font-medium">{(host.clusterName || host.cluster || '-')}</span></div>
                                 </div>
