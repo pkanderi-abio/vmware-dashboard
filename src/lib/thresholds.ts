@@ -9,6 +9,8 @@ export interface Thresholds {
   storageCritical: number;
   snapshotOldDays: number;
   snapshotVeryOldDays: number;
+  certWarnDays: number;
+  certCriticalDays: number;
 }
 
 export const DEFAULT_THRESHOLDS: Thresholds = {
@@ -20,6 +22,8 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
   storageCritical: 95,
   snapshotOldDays: 7,
   snapshotVeryOldDays: 30,
+  certWarnDays: 30,
+  certCriticalDays: 7,
 };
 
 export function getThresholds(): Thresholds {

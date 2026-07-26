@@ -407,6 +407,22 @@ class ApiClient {
   async getAudit(limit = 100): Promise<ApiResponse<any[]>> {
     return this.request<any[]>(`/audit?limit=${limit}`);
   }
+
+  // ============================================
+  // Certificates
+  // ============================================
+  async getCertificates(warnDays?: number, criticalDays?: number): Promise<ApiResponse<any[]> & { summary?: Record<string, number> }> {
+    const params = new URLSearchParams();
+    if (warnDays !== undefined) params.set('warn_days', String(warnDays));
+    if (criticalDays !== undefined) params.set('critical_days', String(criticalDays));
+    const qs = params.toString();
+    const path = qs ? '/certificates?' + qs : '/certificates';
+    return this.request<any[]>(path);
+  }
+
+  async refreshCertificates(): Promise<ApiResponse<void>> {
+    return this.request('/certificates/refresh', { method: 'POST' });
+  }
 }
 
 export const api = new ApiClient();

@@ -14,6 +14,7 @@ import SettingsPage from "./pages/settings";
 import NotFoundPage from "./pages/not-found";
 import VCenterHealthPage from "./pages/vcenter-health";
 import TrendingPage from "./pages/trending";
+import CertificatesPage from "./pages/certificates";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -63,6 +64,7 @@ function App() {
               <Route path="/snapshots" element={<SnapshotsPage />} />
               <Route path="/cmdb" element={<CMDBPage />} />
               <Route path="/trending" element={<TrendingPage />} />
+              <Route path="/certificates" element={<CertificatesPage />} />
               <Route path="/vcenter-health" element={<VCenterHealthPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFoundPage />} />

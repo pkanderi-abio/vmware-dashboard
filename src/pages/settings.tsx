@@ -850,6 +850,23 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><Shield className="w-4 h-4 text-cyan-500" /> Certificate Expiry</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Warning (days)</label>
+                  <Input type="number" min={1} value={thresholdForm.certWarnDays}
+                    onChange={e => setThresholdForm(f => ({ ...f, certWarnDays: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Critical (days)</label>
+                  <Input type="number" min={1} value={thresholdForm.certCriticalDays}
+                    onChange={e => setThresholdForm(f => ({ ...f, certCriticalDays: Number(e.target.value) }))}
+                    className="mt-1 h-8 text-sm" />
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3 pt-2 border-t">
             <Button onClick={handleSaveThresholds} size="sm">

@@ -11,3 +11,5 @@ urllib3==2.1.0
 # import so the app boots without it (endpoints return empty data), but a real
 # deployment must have it installed.
 pyvmomi==8.0.2.0.1
+# cryptography parses the ESXi / vCenter TLS certs for the expiry monitor.
+cryptography>=42,<45

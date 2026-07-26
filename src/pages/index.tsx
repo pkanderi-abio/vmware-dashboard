@@ -102,12 +102,13 @@ export default function HomePage() {
       }
 
       // Fetch all resources in parallel
-      const [hostsRes, vmsRes, datastoresRes, networksRes, snapshotsRes] = await Promise.all([
+      const [hostsRes, vmsRes, datastoresRes, networksRes, snapshotsRes, certsRes] = await Promise.all([
         api.getHosts().catch(() => ({ success: false, data: [] })),
         api.getVMs().catch(() => ({ success: false, data: [] })),
         api.getDatastores().catch(() => ({ success: false, data: [] })),
         api.getNetworks().catch(() => ({ success: false, data: [] })),
         api.getSnapshots().catch(() => ({ success: false, data: [] })),
+        api.getCertificates(thresholds.certWarnDays, thresholds.certCriticalDays).catch(() => ({ success: false, data: [] })),
       ]);
 
       const hosts = hostsRes.success ? hostsRes.data || [] : [];
@@ -115,6 +116,34 @@ export default function HomePage() {
       const datastores = datastoresRes.success ? datastoresRes.data || [] : [];
       const networks = networksRes.success ? networksRes.data || [] : [];
       const snapshots = snapshotsRes.success ? snapshotsRes.data || [] : [];
+      const certs = certsRes.success ? certsRes.data || [] : [];
+
+      // Certificate alerts — one row per problematic cert (expired / critical / warning)
+      for (const c of certs as any[]) {
+        const base = {
+          id: `cert-${c.kind}-${c.host}`,
+          resource: c.host,
+          resourceType: c.kind === 'vcenter' ? 'vcenter' : 'host',
+          timestamp: new Date(),
+          link: '/certificates',
+        };
+        if (c.status === 'expired') {
+          newAlerts.push({
+            ...base, severity: 'critical', type: 'Cert Expired',
+            message: `${c.host} TLS cert expired ${Math.abs(c.daysUntilExpiry ?? 0)} days ago — renew now`,
+          });
+        } else if (c.status === 'critical') {
+          newAlerts.push({
+            ...base, severity: 'critical', type: 'Cert Expiring',
+            message: `${c.host} TLS cert expires in ${c.daysUntilExpiry}d (< ${thresholds.certCriticalDays}d critical)`,
+          });
+        } else if (c.status === 'warning') {
+          newAlerts.push({
+            ...base, severity: 'warning', type: 'Cert Expiring',
+            message: `${c.host} TLS cert expires in ${c.daysUntilExpiry}d (< ${thresholds.certWarnDays}d warning)`,
+          });
+        }
+      }
 
       // Calculate host stats and alerts
       const getHostStatus = (h: any) => h.status?.Value || h.status || '';

@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from starlette.middleware import Middleware
 
 import action_guard
+import vcenter_certs
 import vcenter_lifecycle
 from action_guard import TokenError
 from cmdb_history import historical_cmdb
@@ -594,6 +595,24 @@ def background_refresh() -> None:
         with suppress(Exception):
             _snapshot_trending()
 
+        # Collect TLS certificate expiry per ESXi host + vCenter (best-effort)
+        with suppress(Exception):
+            targets: List[Dict[str, str]] = []
+            for h in hosts:
+                host_name = str(h.get("hostName") or "").strip()
+                if host_name:
+                    targets.append({
+                        "host": host_name, "kind": "esxi",
+                        "vcenter": str(h.get("vcenterName") or ""),
+                    })
+            for cred in enabled_creds:
+                targets.append({
+                    "host": cred["hostname"], "kind": "vcenter",
+                    "vcenter": cred["hostname"],
+                })
+            entries = vcenter_certs.inspect_all(targets)
+            data_cache.set("certificates", entries)
+
     except Exception:
         logger.exception("Fatal refresh error")
     finally:
@@ -1073,6 +1092,50 @@ async def get_trending(hours: int = 168) -> Dict[str, Any]:
         return {"success": True, "data": filtered, "count": len(filtered)}
     except Exception as exc:
         return {"success": False, "data": [], "message": str(exc)}
+
+
+@app.get("/api/certificates")
+async def get_certificates(
+    warn_days: int = vcenter_certs.DEFAULT_WARN_DAYS,
+    critical_days: int = vcenter_certs.DEFAULT_CRITICAL_DAYS,
+) -> Dict[str, Any]:
+    """Cached TLS-cert scan for every ESXi + vCenter target.
+
+    Reclassifies the cached rows against the caller-supplied thresholds so
+    the UI's Settings page can drive warn/critical bands without re-fetching.
+    """
+    entries = list(data_cache.get("certificates", ignore_ttl=True) or [])
+    for e in entries:
+        days = e.get("daysUntilExpiry")
+        if isinstance(days, (int, float)):
+            e["status"] = vcenter_certs._classify(days, warn_days, critical_days)
+    return {
+        "success": True,
+        "data": entries,
+        "summary": vcenter_certs.summarize(entries),
+        "warn_days": warn_days,
+        "critical_days": critical_days,
+        "count": len(entries),
+    }
+
+
+@app.post("/api/certificates/refresh")
+async def refresh_certificates(bg: BackgroundTasks) -> Dict[str, Any]:
+    """Kick a fresh cert scan without waiting for the next data refresh."""
+    def _rescan() -> None:
+        with suppress(Exception):
+            hosts = data_cache.get("hosts", ignore_ttl=True) or []
+            creds = load_credentials()
+            targets: List[Dict[str, str]] = []
+            for h in hosts:
+                name = str(h.get("hostName") or "").strip()
+                if name:
+                    targets.append({"host": name, "kind": "esxi", "vcenter": str(h.get("vcenterName") or "")})
+            for hostname in creds:
+                targets.append({"host": hostname, "kind": "vcenter", "vcenter": hostname})
+            data_cache.set("certificates", vcenter_certs.inspect_all(targets))
+    bg.add_task(_rescan)
+    return {"success": True, "message": "Certificate rescan started"}
 
 
 @app.get("/api/tags")
